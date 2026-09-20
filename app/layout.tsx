@@ -10,6 +10,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body style={{ margin: 0, background: "#0e1218", color: "#e7edf5" }}>
         <ClerkProvider
           afterSignOutUrl="/sign-in"
+          localization={{
+            signIn: { start: { title: "Sign in to BTracker" } },
+            signUp: { start: { title: "Create your BTracker account" } },
+          }}
           appearance={{
             theme: dark,
             variables: { colorPrimary: "#a78bfa", borderRadius: "10px" },
