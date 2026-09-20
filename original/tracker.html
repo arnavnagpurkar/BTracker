@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>BTracker</title>
+<title>Question Log — JEE tracker</title>
 <style>
 :root{
   color-scheme: dark;
@@ -398,6 +398,17 @@ math[display="block"]{display:block;margin:8px 0}
 .man .diagram{background:var(--ink-2);border:1px solid var(--rule-soft);border-radius:var(--r);padding:18px;margin:14px 0;overflow-x:auto}
 .man kbd{background:var(--ink-3);border:1px solid var(--rule);border-radius:5px;padding:1px 7px;font-family:var(--mono);font-size:12px}
 .man .tip{border-left:3px solid var(--hw);background:rgba(122,162,255,.07);border-radius:0 8px 8px 0;padding:10px 14px;margin:10px 0;font-size:13.5px;color:var(--text-2)}
+.man h3.sec{scroll-margin-top:130px;padding-top:6px}
+.man ol{color:var(--text-2);line-height:1.8;font-size:14px;padding-left:22px}
+.man em{color:var(--text)}
+.man .jump{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
+.man .jump button{border:1px solid var(--rule);background:var(--ink-2);border-radius:99px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text-2)}
+.man .jump button:hover{border-color:var(--accent);color:var(--text)}
+.man .glance{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:16px 0 4px}
+.man .glance div{background:var(--ink-2);border:1px solid var(--rule-soft);border-radius:10px;padding:12px 14px}
+.man .glance b{display:block;font-size:14px;margin-bottom:2px}
+.man .glance span{font-size:12.5px;color:var(--text-3);line-height:1.5}
+.man code{background:var(--ink-3);border-radius:4px;padding:1px 5px;font-family:var(--mono);font-size:12.5px}
 
 @media (max-width:860px){ .g3,.g2{grid-template-columns:1fr} .grid{gap:14px} .card{padding:16px} }
 @media (max-width:720px){
@@ -5022,69 +5033,147 @@ function manFaq(items){
 }
 function viewManual(){
   crumbs([{label:"Home",href:"#/"},{label:"Manual"}]);
-  app.innerHTML = `<div class="man"><div class="pagehead"><div class="eyebrow">Manual</div>
-      <h1>What this app does, and how to get the most out of it</h1>
-      <p class="sub">Everything on this page is static — nothing here is saved or changes your data.</p></div>
+  const sec = (id, title) => `<h3 class="sec" id="man-${id}">${title}</h3>`;
+  const jumps = [["start","Quick start"],["shape","How it's organised"],["account","Account & saving"],["subjects","Subjects"],
+    ["hw","Homework"],["coll","Collections"],["study","Study log"],["stats","Statistics"],["goals","Goals"],
+    ["rev","Revision"],["tests","Marks & Analysis"],["tools","Top bar & shortcuts"],["faq","Questions"]];
+  app.innerHTML = `<div class="man">
+    <div class="pagehead"><div class="eyebrow">Manual</div>
+      <h1>How BTracker works</h1>
+      <p class="sub">Everything the app can do, in the order you will probably need it. This page is only reading material — nothing here changes your data.</p></div>
 
-    <h3 class="sec">The shape of the app</h3>
-    <p>Every question you ever solve lives at one address: a subject, inside a module, inside a chapter, inside an exercise. Progress, notes, stars, and homework are all built on that address, which is why renaming or renumbering a chapter never loses anything — only the label changes, not the underlying key.</p>
+    <div class="jump">${jumps.map(([id,l])=>`<button data-jump="man-${id}">${esc(l)}</button>`).join("")}</div>
+
+    ${sec("start","Quick start")}
+    <ol>
+      <li><b>Open a subject</b> on the Home page and drill down: module → chapter → exercise.</li>
+      <li><b>Tick questions as you solve them.</b> Mark each one correct or wrong, and say <em>why</em> when it was wrong.</li>
+      <li><b>Put pending work in Homework</b> so you always know what is left.</li>
+      <li><b>Start a timer in the Study log</b> so your hours land in Statistics and Goals.</li>
+      <li><b>Just keep going.</b> Everything is saved to your account automatically — sign in on any device and it is all there.</li>
+    </ol>
+    <div class="glance">
+      <div><b>Subjects</b><span>The syllabus down to every question.</span></div>
+      <div><b>Homework</b><span>Ranges, tasks and backlog with due dates.</span></div>
+      <div><b>Collections</b><span>Stars, retries, wrong answers, notes and your own lists.</span></div>
+      <div><b>Study log</b><span>Pomodoro, endless timer and speedruns.</span></div>
+      <div><b>Statistics</b><span>Time, questions, mistakes, heatmap, graphs, radar.</span></div>
+      <div><b>Goals</b><span>Targets per day, week, month or deadline.</span></div>
+      <div><b>Revision</b><span>Chapters that fade from green to red until you revise.</span></div>
+      <div><b>Marks</b><span>Test scores in tables and line graphs.</span></div>
+      <div><b>Analysis</b><span>Test-by-test breakdowns, ranks and notes.</span></div>
+    </div>
+
+    ${sec("shape","How it's organised")}
+    <p>Every question you solve lives at one address: a subject, inside a module, inside a chapter, inside an exercise. Ticks, notes, stars and homework are all attached to that address. That is why renaming or renumbering a chapter never loses anything — only the label you see changes, not the key underneath.</p>
     ${svgTree()}
-    <p>Nothing here needs a server. The whole app is one HTML file; your data lives in this browser and in whatever code or file you choose to save.</p>
+    <p>The syllabus for Maths, Physics and Chemistry is built in (modules 1 to 6). You can add your own subjects, modules, chapters and exercises next to it, and bring in ready-made <b>reference books</b> (see Subjects).</p>
 
-    <h3 class="sec">Saving your progress</h3>
-    ${svgFlow([["Working in the app",""],["Autosave to this browser","every ~1s"],["Save button","code or .txt"],["Paste back later","any device"]])}
-    <p>The app autosaves to this browser continuously — the dot beside <b>Save</b> turns green once it has. That protects you against closing the tab, but not against clearing your browser data or switching devices. For that, open <b>Save</b> and either copy the code or download it as a timestamped <code>.txt</code> file, then paste or upload it back whenever you need to. The code is checksummed, so a truncated paste is rejected with a message rather than silently loading half your work.</p>
-    <div class="tip">Keep a save file somewhere outside the browser — a notes app, cloud drive, or email to yourself — after any long session.</div>
-
-    <h3 class="sec">Subjects tab</h3>
-    <p>Browse Math, Physics and Chemistry down to individual questions. Each question row has a tick, correct/wrong/could-not-solve, a review flag, notes (which can contain <code>$\\text{LaTeX}$</code>), star rating, and a bookmark. Drag down the question numbers to select a run and act on all of them together, or type a range like <code>4, 7, 8-9, 45-60</code> in the box above the table and apply one status to all of them at once.</p>
+    ${sec("account","Your account and saving")}
+    ${svgFlow([["You work","tick, note, time"],["Saved to your account","a few seconds later"],["Any device","sign in, same data"]])}
+    <p>Your progress lives in your account, not in the browser. A few seconds after you stop making changes it is sent to the cloud, and it is sent immediately if you switch tabs, close the page or open the profile menu. On another phone or computer, sign in with the same login and everything is there.</p>
     <ul>
-      <li>Press <kbd>N</kbd> anywhere to add whatever fits that level — a subject, module, chapter, or exercise.</li>
-      <li>Hover any card and press <b>✎</b> to rename or renumber it without opening it.</li>
-      <li><b>Could not solve</b> counts as an honest attempt but not as solved — it will not inflate your daily question count.</li>
+      <li><b>The Sync button</b> in the top bar shows the state with a dot:
+        <span class="dot ok" style="display:inline-block;vertical-align:middle"></span> saved ·
+        <span class="dot on" style="display:inline-block;vertical-align:middle"></span> waiting, saving or offline ·
+        <span class="dot" style="display:inline-block;vertical-align:middle;background:var(--no)"></span> paused. Press it to <b>Save now</b>.</li>
+      <li><b>Your profile picture</b> (top right) opens the account menu: manage your account and security, and sign out. Account deletion appears there too where it has been switched on.</li>
+      <li><b>Two devices at once.</b> If another device saved after this screen loaded, nothing is overwritten. A dialog lets you use the saved copy, keep this screen, or decide later — saving stays paused until you choose.</li>
+      <li><b>Offline or a bad connection.</b> Changes stay on screen and are retried automatically. The browser warns you if you try to close the page while something is still unsaved.</li>
+      <li><b>Sync → Import or export a code (advanced)</b> lets you bring in progress from an old save code or file, or download an optional off-site backup.</li>
+    </ul>
+    <div class="tip">Use one device at a time when you can. Opening the app on your phone while it is still open on your laptop is what triggers the "newer copy" dialog.</div>
+
+    ${sec("subjects","Subjects")}
+    <p>Open a subject and go down to an exercise. Each question is a row with:</p>
+    <ul>
+      <li><b>Solved</b> tick, and <b>✓ / ✕</b> for correct or wrong. Marking wrong asks <b>why</b> — pick as many mistake reasons as apply, or add your own.</li>
+      <li><b>RETRY</b> flags it for another go. <b>STUCK</b> means you could not solve it — an honest attempt, but it does not count as solved.</li>
+      <li><b>Stars</b> (1 to 3) for how important or hard it was, a <b>note</b> (maths goes between dollar signs), and a <b>bookmark</b> to save it into a collection.</li>
+    </ul>
+    <p>To work faster: use <b>Show / Stars / Order</b> to filter the table; type a range like <code>4, 7, 8-9, 45-60</code> in the <b>Apply to questions</b> box; or drag down the question numbers to select a run, then mark them together or send them to homework.</p>
+
+    <details><summary>Adding and organising (the + button, or press N)</summary>
+      <p>The <b>+</b> button at the bottom left offers whatever fits the page you are on — a subject, module, chapter or exercise. Press <kbd>N</kbd> for the most common one. Hover any card and press <b>✎</b> to rename it; chapters can be renumbered too. Everything recorded stays with the chapter.</p></details>
+    <details><summary>Reference books</summary>
+      <p>On the Home page press <b>+ → Add reference books…</b> for ready-made modules of popular books — HC Verma (both volumes), SBT, Irodov, Cengage Maths, DC Pandey, Narendra Awasti, VK Jaiswal and MS Chouhan. Nothing is added until you pick it. Each book becomes a module with a chapter per topic and an exercise per section. SBT also collects its recommended questions into their own collection.</p>
+      <p>A book is copied into your account when you add it, so later changes to the book in a new version of the app do not alter the copy you already have.</p></details>
+    <details><summary>Merge chapters</summary>
+      <p>Handy when you were already tracking a chapter that the syllabus later added. Press <b>+ → Merge chapters…</b>, pick two or more chapters, then choose which one to keep, which exercises come across from each, what the merged chapter is called and numbered, and which module it lives in. Your ticks, notes and homework move with it.</p></details>
+    <details><summary>Select in bulk: copy, move, delete</summary>
+      <p>From a module or chapter page choose <b>Select chapters…</b> or <b>Select exercises…</b>. Then <b>Copy</b> (open the place you want them, press <b>+</b>, choose Paste), <b>Move…</b> to another module or chapter, or <b>Delete</b>. Any chapter can be moved, including built-in ones. Delete only works on things you added yourself — built-in items in a selection are skipped.</p></details>
+
+    ${sec("hw","Homework")}
+    <p>Three kinds, chosen at the top of the form:</p>
+    <ul>
+      <li><b>Questions</b> — a range from one exercise, such as <code>20-30, 45</code>. Each question is a chip: click to tick it, double-click to edit its result, stars and note, or drag across several to select them.</li>
+      <li><b>Something else</b> — any task, tied to a subject, module, chapter or exercise, or to none of them.</li>
+      <li><b>Backlog</b> — a lecture or a whole exercise you have fallen behind on. Tied to an exercise, it counts down by itself ("43 of 65 left") as you tick.</li>
+    </ul>
+    <p>Every item can have a due date and an <b>Edit</b> button. Sort <b>by location</b> or <b>most urgent first</b>. When every question on a list is done it moves to <b>Finished</b>, with an undo offer if that was a slip.</p>
+
+    ${sec("coll","Collections")}
+    <p>Ready-made collections gather questions automatically: 1, 2 and 3 stars, Retry, Wrong (filter by mistake reason), Stuck, and anything with a note. <b>My notes</b> holds notes that belong to no particular question, and <b>Exam notes</b> shows the notes you wrote on tests. Make your own collections and bookmark any question into as many as you like. Saving into a star collection sets that star on the question.</p>
+
+    ${sec("study","Study log")}
+    <p>Pick what you are studying — a subject, Revision, Mock test, or an activity of your own — and optionally a deadline you are working towards. Then choose a mode at the top:</p>
+    <ul>
+      <li><b>Pomodoro</b> — focus and break lengths, optional auto-start for each, and a chime you control in Settings.</li>
+      <li><b>Endless</b> — counts up like a stopwatch, suggests a break every two hours and stops itself at twenty.</li>
+      <li><b>Speedrun</b> — set a number of questions and a time limit, and optionally race one of your homework lists or an exercise. Three rings show time left, where you should be, and where you are. A tap-to-finish button is optional; without it you confirm what you finished at the end. Speedruns also feed the average time per question in Statistics.</li>
+    </ul>
+    <p>Sessions you forgot to time can be added from Statistics. Homework with a due date is listed at the bottom of the page.</p>
+
+    ${sec("stats","Statistics")}
+    <p><b>Deadlines</b> sit at the top: a name, start and end dates, the subjects it covers, goals and reflections. <b>Finished</b> hides one without deleting it. Below that, look at any day, week, month, custom range, or one deadline's own span. You get time studied, questions solved, averages, longest and average session, days studied, wrong answers, and pies for time, questions and mistake reasons. Averages start from your first day in the app, never from before.</p>
+    <ul>
+      <li><b>Study heatmap</b> — a calendar of the last N days, shaded by <em>time studied</em> or <em>questions done</em>, with subjects you can switch on and off.</li>
+      <li><b>Study line graph</b> — smooth curves per subject with a thicker total line. Choose the last N days or a deadline, switch between time and questions, and hide any line.</li>
+      <li><b>Syllabus radar</b> — how much you have covered. Compare <em>all subjects</em>, or pick 3 to 7 started chapters of one subject. Measure <em>% completed</em> or <em>% accuracy</em>.</li>
+    </ul>
+    <div class="tip">The <b>◉ Stats</b> button in the top bar pauses counting. Use it while you catch up on old work so a big tick session does not distort today's numbers.</div>
+
+    ${sec("goals","Goals")}
+    <p>Set targets for questions solved, hours studied, and how much your mistake rate should change. Each period type — day, week, month, range, deadline — keeps its own targets. You see whether you met each one and the change from the previous period.</p>
+
+    ${sec("rev","Revision")}
+    <p>Add chapters you want to keep fresh, each with a weight from 1 to 10. Every chapter shows a bar that fades from green to red the longer it has been since you last revised it (you choose how many days it takes, 14 by default). Press <b>+</b> on a chapter each time you go back over it and it turns green again.</p>
+    <ul>
+      <li><b>🔔 Reminders</b> — pick a date, optionally repeat weekly or monthly, and add a note. Due reminders show on the tab and at the top of the page.</li>
+      <li><b>Revision roulette</b> — press <b>+ → Revision roulette</b> and it picks a chapter for you at random, favouring the stalest.</li>
+      <li>You can add chapters for one deadline's subjects only, and heavier chapters pull the overall freshness figure more.</li>
     </ul>
 
-    <h3 class="sec">Homework tab</h3>
-    <p>Three kinds of homework: a range of <b>questions</b> from a specific exercise, <b>something else</b> — any task, optionally tied to a subject, module, chapter or exercise, or none of them — and <b>backlog</b>, for entire exercises or lectures you've fallen behind on. A backlog item tied to an exercise tracks itself against your real ticks and shows "43 of 65 left" on its own.</p>
-    <p>Drag across question chips to bulk-mark them, or double-click one to edit its result, stars and note directly. Every item has an <b>Edit</b> button for its range and due date, and a due date is picked from a calendar. Sort by location or by how urgent each list is.</p>
+    ${sec("tests","Marks and Analysis")}
+    <p><b>Marks</b> is a table per test series (BTest, MHTCET, ALT, or your own). Percentage works itself out from total and scored. Drag the ⠿ handle to reorder rows or columns, and plot any column against any other as a line graph.</p>
+    <p><b>Analysis</b> goes deeper on each test: a donut per subject (green scored, red wrong, grey left), ranks and aggregate with the average worked out, a table of questions worth revisiting with mistake tags, and notes that also appear under Exam notes in Collections. Series settings set the marks per subject for every test in a series. Marks in Analysis and in the Marks tab are the same numbers — change either and the other follows.</p>
 
-    <h3 class="sec">Collections tab</h3>
-    <p>Automatic collections for 1/2/3-star questions, Retry, Wrong (filterable by mistake tag), Stuck, and any question with a note. <b>My notes</b> holds notes that aren't about any particular question — write one straight in. Make your own collections and bookmark any question into as many as you like from the ★ at the end of its row.</p>
-
-    <h3 class="sec">Study log tab</h3>
-    <p>Three modes, switched at the top of the page:</p>
+    ${sec("tools","Top bar and shortcuts")}
     <ul>
-      <li><b>Pomodoro</b> — focus and break lengths, optional auto-start for either, and a chime you control from Settings.</li>
-      <li><b>Endless</b> — counts up like a stopwatch, nudges you to take a break every two hours, and stops itself at twenty.</li>
-      <li><b>Speedrun</b> — set a number of questions and a time limit, optionally against a real exercise or just to practice. A tap-to-finish button is optional; turn it off and you'll confirm what you actually finished when you stop. Three rings track time, expected pace, and your count, with a box of questions to the right that fill in as you go.</li>
+      <li><b>🎨</b> changes the theme — dark, dark red, dark green or light.</li>
+      <li><b>◉ Stats</b> pauses or resumes counting ticks towards Statistics.</li>
+      <li><b>↶</b> undoes the last change, up to 25 deep. Button ticks are not snapshotted one by one; undo targets additions, deletions and bulk changes.</li>
+      <li><b>Sync</b> shows your save state. <b>Profile picture</b> opens your account menu.</li>
+      <li><kbd>N</kbd> adds whatever fits the page · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Esc</kbd> closes a dialog or clears a selection.</li>
     </ul>
-    <p>Pick a subject (or a custom activity) and, if you like, a deadline you're working towards — both are remembered for your next session.</p>
 
-    <h3 class="sec">Statistics tab</h3>
-    <p>Deadlines live at the top, each with a start and end date, related subjects, goals and reflections, and a <b>Finished</b> button that hides it without deleting it — a finished deadline also disappears from the Study log's picker. Below that, view any day, week, month, custom range, or a single deadline's own span. Numbers are counted from your first day in the app, never averaged over days before you started.</p>
-
-    <h3 class="sec">Goals tab</h3>
-    <p>Targets for questions solved, hours studied, and how much your mistake rate should change — one set of targets per period, so a daily target and a monthly one never collide. Shows whether you met it and the percentage change from the period before.</p>
-
-    <h3 class="sec">Marks tab</h3>
-    <p>BTest, MHTCET, ALT, and any tables you add. Percentage works itself out from total and scored. Drag the ⠿ handle on any row or column header to reorder them. Plot any column against any other as a line graph.</p>
-
-    <h3 class="sec">Analysis tab</h3>
-    <p>Folders of test series — BTest, ALT, MHTCET by default. Each test shows a donut per subject (green scored, red wrong, grey left — a full green ring at full marks), rank tiles, an aggregate with the average worked out for you, a table of questions worth revisiting with mistake tags, and notes that file into an <b>Exam notes</b> collection. Marks here and in the Marks tab are the same numbers from either side.</p>
-
-    <h3 class="sec">Undo</h3>
-    <p>The ↶ button (or <kbd>Ctrl</kbd>+<kbd>Z</kbd>) undoes additions, deletions, and bulk changes, twenty-five deep. Single question ticks aren't snapshotted individually — undo targets the things that are awkward to redo by hand.</p>
-
-    <h3 class="sec">Frequently asked</h3>
+    ${sec("faq","Questions")}
     ${manFaq([
-      ["Do I need the internet for any of this?", "No. The file works fully offline once it's downloaded — maths rendering, charts, and everything else run with nothing fetched from outside."],
-      ["I closed the tab without saving — is my work gone?", "Probably not. The app autosaves to this browser as you work, so reopening the same file in the same browser should pick up where you left off. Saving a code or file is still worth doing before switching devices or browsers."],
-      ["Can two people share one save code?", "Yes, in the sense that a code fully describes one state — pass it around like a save file. There's no live sync between two open copies, though; whichever code is loaded last wins."],
-      ["Why does renumbering a chapter not lose my progress?", "The number you see is a label. Underneath, every chapter keeps a permanent internal number that never changes, so your ticks and notes are keyed to something renumbering can't touch."],
-      ["What LaTeX can I use in notes?", "Fractions, roots, super/subscripts, Greek letters, sums, integrals, limits, vectors, and the common symbols and function names — enough for most JEE-level notes. Multi-line aligned equations and matrices aren't supported."],
-      ["My question count for a period looks lower than expected.", "Check whether Statistics is paused (the ◉/◎ button top right) — while paused, ticks aren't counted so you can catch up on old work without skewing your numbers."]
+      ["Do I need the internet?", "Yes. The app loads and saves through your account, so you need a connection to open it. If it drops while you are working, your changes stay on screen and are sent when it comes back."],
+      ["I closed the tab without waiting — is my work gone?", "Almost never. Changes are sent as soon as the tab is hidden or closed. If something could not be sent, the browser warns you before the page closes."],
+      ["I am on two devices — which one wins?", "Neither, automatically. Whichever saved last is the saved copy, and the other device is asked what to do instead of overwriting it. Pick the saved copy, or keep the screen you have."],
+      ["Can other students see my progress?", "No. Your progress belongs to your account and is loaded only when you are signed in."],
+      ["How do I bring in progress from the old version?", "Open the old file, press Save, and copy the code. Then in this app open Sync → Import or export a code, paste it and import. It replaces what is currently in your account."],
+      ["Why does renumbering a chapter not lose my progress?", "The number you see is only a label. Every chapter keeps a permanent internal number, so ticks and notes stay attached however you renumber it."],
+      ["What maths can I write in notes?", "Put it between dollar signs: <code>$\\frac{1}{2}mv^2$</code>. Fractions, roots, powers and subscripts, Greek letters, sums, integrals, limits, vectors and common symbols work. Multi-line aligned equations and matrices are not supported."],
+      ["My question count for a period looks low.", "Check whether Statistics is paused (the ◉ / ◎ button in the top bar). While paused, ticks are not counted."],
+      ["I see a red dot beside Sync.", "Saving is paused because a newer copy exists. Press Sync, then Resolve, and choose which copy to keep."]
     ])}
     </div>`;
+  app.querySelectorAll("[data-jump]").forEach(b=>b.onclick = ()=>{
+    const el = document.getElementById(b.dataset.jump);
+    if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
+  });
 }
 
 /* ============================================================
