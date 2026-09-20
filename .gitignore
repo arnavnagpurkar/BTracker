@@ -1,0 +1,8 @@
+node_modules
+.next
+.env*.local
+.vercel
+next-env.d.ts
+# built from original/tracker.html by scripts/patch-tracker.mjs
+lib/tracker.generated.ts
+patched/

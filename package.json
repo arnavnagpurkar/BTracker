@@ -1,0 +1,32 @@
+{
+  "name": "jee-tracker",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "patch": "node scripts/patch-tracker.mjs",
+    "predev": "node scripts/patch-tracker.mjs",
+    "dev": "next dev",
+    "prebuild": "node scripts/patch-tracker.mjs",
+    "build": "next build",
+    "start": "next start",
+    "pretest": "node scripts/patch-tracker.mjs",
+    "test": "node tests/smoke.mjs"
+  },
+  "dependencies": {
+    "@clerk/nextjs": "latest",
+    "@clerk/ui": "latest",
+    "@neondatabase/serverless": "^1",
+    "next": "^15",
+    "react": "^19",
+    "react-dom": "^19"
+  },
+  "devDependencies": {
+    "@types/node": "^22",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "typescript": "^5"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
