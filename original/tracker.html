@@ -3770,7 +3770,7 @@ function viewMarks(){
       t.rows[ri].v[inp.dataset.col] = inp.value;
       markDirty();
       const tr = inp.closest("tr");
-      t.cols.forEach((c,ci)=>{ if(c.calc) tr.children[ci].textContent = calcCell(t, t.rows[ri], c); });
+      t.cols.forEach((c,ci)=>{ if(c.calc) tr.children[ci+1].textContent = calcCell(t, t.rows[ri], c); });
       if(graphCol){ clearTimeout(inp._g); inp._g = setTimeout(()=>{ const a=document.activeElement, id=a&&a.dataset?a.dataset.col:null;
         viewMarks(); if(id){ const el=document.querySelector(`tr[data-row="${ri}"] input[data-col="${id}"]`); if(el){ el.focus(); el.setSelectionRange(el.value.length,el.value.length); } } }, 600); }
     };
