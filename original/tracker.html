@@ -68,6 +68,7 @@ input,select,textarea{font:inherit;color:inherit}
 .sep{color:var(--text-3);padding:0 1px}
 .tool{display:flex;align-items:center;gap:7px;flex:none;border:1px solid var(--rule);background:var(--ink-2);padding:6px 12px;border-radius:99px;font-size:13px;font-weight:600;white-space:nowrap}
 .tool:hover{border-color:var(--accent)}
+.hueSw{width:30px;height:30px;border-radius:8px;border:1px solid var(--rule)}
 .tool:disabled{opacity:.35;cursor:not-allowed}
 .tool.on{border-color:var(--hw);color:var(--hw)}
 .dot{width:7px;height:7px;border-radius:99px;background:var(--text-3)}
@@ -398,17 +399,6 @@ math[display="block"]{display:block;margin:8px 0}
 .man .diagram{background:var(--ink-2);border:1px solid var(--rule-soft);border-radius:var(--r);padding:18px;margin:14px 0;overflow-x:auto}
 .man kbd{background:var(--ink-3);border:1px solid var(--rule);border-radius:5px;padding:1px 7px;font-family:var(--mono);font-size:12px}
 .man .tip{border-left:3px solid var(--hw);background:rgba(122,162,255,.07);border-radius:0 8px 8px 0;padding:10px 14px;margin:10px 0;font-size:13.5px;color:var(--text-2)}
-.man h3.sec{scroll-margin-top:130px;padding-top:6px}
-.man ol{color:var(--text-2);line-height:1.8;font-size:14px;padding-left:22px}
-.man em{color:var(--text)}
-.man .jump{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 6px}
-.man .jump button{border:1px solid var(--rule);background:var(--ink-2);border-radius:99px;padding:5px 12px;font-size:12.5px;font-weight:600;color:var(--text-2)}
-.man .jump button:hover{border-color:var(--accent);color:var(--text)}
-.man .glance{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin:16px 0 4px}
-.man .glance div{background:var(--ink-2);border:1px solid var(--rule-soft);border-radius:10px;padding:12px 14px}
-.man .glance b{display:block;font-size:14px;margin-bottom:2px}
-.man .glance span{font-size:12.5px;color:var(--text-3);line-height:1.5}
-.man code{background:var(--ink-3);border-radius:4px;padding:1px 5px;font-family:var(--mono);font-size:12.5px}
 
 @media (max-width:860px){ .g3,.g2{grid-template-columns:1fr} .grid{gap:14px} .card{padding:16px} }
 @media (max-width:720px){
@@ -786,7 +776,15 @@ const BUILT_ACTS = [{id:"rev",n:"Revision",c:"#ffd43b"},{id:"mock",n:"Mock test"
    Question value = 6 bits: done | result(2) | review | stars(2)
    result 0 none / 1 correct / 2 wrong / 3 could not solve
    ============================================================ */
-function newCustom(){ return {subs:[], mods:{}, chs:{}, exs:{}, cnt:{}, ren:{}, num:{}, mod:{}, tags:[], acts:[], refAdded:{}}; }
+function newCustom(){ return {subs:[], mods:{}, chs:{}, exs:{}, cnt:{}, ren:{}, num:{}, mod:{}, tags:[], acts:[], refAdded:{}, colr:{}, hideAct:{}}; }
+/* fields added after some saves were written, so an older code still loads */
+function fillCustom(){
+  S.x = S.x || newCustom();
+  const blank = newCustom();
+  Object.keys(blank).forEach(k=>{ if(S.x[k]===undefined || S.x[k]===null) S.x[k] = blank[k]; });
+}
+/* the colour a subject or module is drawn in: "s:M", "m:M:3" */
+const colorOf = k => (S.x.colr||{})[k] || null;
 function newMarks(){
   const cols = ()=>[{id:"name",n:"Test"},{id:"date",n:"Date"},{id:"tot",n:"Total marks"},{id:"sc",n:"Scored marks"},
     {id:"p",n:"Physics"},{id:"c",n:"Chemistry"},{id:"m",n:"Maths"},
@@ -895,11 +893,11 @@ function buildTree(){
   TREE = {order:[], subjects:{}};
   for(const code of ["M","P","C"]){
     const b = BUILTIN[code];
-    const sub = {code, name:S.x.ren["s:"+code]||b.name, short:b.short, accent:b.accent, custom:false, modules:{}, order:[]};
+    const sub = {code, name:S.x.ren["s:"+code]||b.name, short:b.short, accent:colorOf("s:"+code)||b.accent, custom:false, modules:{}, order:[]};
     /* every module exists before any chapter is placed, so a chapter moved
        into a later module still has somewhere to land */
     for(let m=1;m<=6;m++){
-      sub.modules[m] = {id:m, name:S.x.ren["m:"+code+":"+m]||("Module "+m), custom:false, chapters:[]};
+      sub.modules[m] = {id:m, name:S.x.ren["m:"+code+":"+m]||("Module "+m), color:colorOf("m:"+code+":"+m), custom:false, chapters:[]};
       sub.order.push(m);
     }
     for(let m=1;m<=6;m++){
@@ -916,12 +914,12 @@ function buildTree(){
     TREE.subjects[code] = sub; TREE.order.push(code);
   }
   S.x.subs.forEach(cs=>{
-    TREE.subjects[cs.code] = {code:cs.code, name:cs.name, short:cs.name, accent:cs.accent, custom:true, modules:{}, order:[]};
+    TREE.subjects[cs.code] = {code:cs.code, name:cs.name, short:cs.name, accent:colorOf("s:"+cs.code)||cs.accent, custom:true, modules:{}, order:[]};
     TREE.order.push(cs.code);
   });
   for(const sc of TREE.order){
     const sub = TREE.subjects[sc];
-    (S.x.mods[sc]||[]).forEach(cm=>{ sub.modules[cm.id] = {id:cm.id, name:cm.name, custom:true, chapters:[]}; sub.order.push(cm.id); });
+    (S.x.mods[sc]||[]).forEach(cm=>{ sub.modules[cm.id] = {id:cm.id, name:cm.name, color:colorOf("m:"+sc+":"+cm.id), custom:true, chapters:[]}; sub.order.push(cm.id); });
     for(const mid of sub.order)
       (S.x.chs[sc+"|"+mid]||[]).forEach(cc=>sub.modules[mid].chapters.push({no:cc.no, name:cc.name, custom:true, mod:mid, exs:[]}));
     for(const mid of sub.order)
@@ -1260,6 +1258,7 @@ function adoptCode(p){
   S.d=p.d; S.n=p.n; S.r=p.r; S.x=p.x; S.h=p.h; S.hd=p.hd;
   S.log=p.log; S.stat=p.stat; S.marks=p.marks; S.pom=p.pom;
   S.dl=p.dl; S.norec=p.norec; S.hwSort=p.hwSort; S.goals=p.goals; S.col=p.col; S.bm=p.bm; S.notes=p.notes; S.an=p.an; S.rev=p.rev; S.theme=p.theme||"dark"; S.savedAt=p.at; applyTheme();
+  fillCustom();
   migrateMarks(); migrateAnalysis();
   if(!S.pom.kind) S.pom.kind = S.pom.endless ? "endless" : "pomo";
   TIMER.endless = S.pom.kind==="endless";
@@ -1409,6 +1408,7 @@ function addHereAction(){
   return null;
 }
 const penBtn = (k,label) => `<button class="pen" data-ren="${esc(k)}" title="Rename ${esc(label)}" aria-label="Rename ${esc(label)}">✎</button>`;
+const hueBtn = (k,label) => `<button class="pen" data-hue="${esc(k)}" title="Colour of ${esc(label)}" aria-label="Colour of ${esc(label)}">◐</button>`;
 
 const route = () => { const p = location.hash.replace(/^#\/?/,"").split("/").filter(Boolean); return {s:p[0], m:p[1], c:p[2], e:p[3]}; };
 window.addEventListener("hashchange", render);
@@ -1459,7 +1459,7 @@ function viewHome(){
     const st = subjStats(sc), d = subjOf(sc);
     return `<a class="card subj" href="#/${sc}" style="--accent:${d.accent}">
       <span class="bar"></span>
-      <div class="card-top"><h2>${esc(d.name)}${penBtn("s:"+sc,d.name)}${d.custom?'<span class="tagx">yours</span>':""}</h2>
+      <div class="card-top"><h2>${esc(d.name)}${penBtn("s:"+sc,d.name)}${hueBtn("s:"+sc,d.name)}${d.custom?'<span class="tagx">yours</span>':""}</h2>
       <span class="pct ${pct(st)?"":"zero"}">${pct(st)}%</span></div>
       <div class="meta">${allChapters(sc).length} chapters · ${st.n} questions</div>
       <div class="rail"><i style="width:${pct(st)}%"></i></div>${statLine(st)}</a>`;
@@ -1489,8 +1489,8 @@ function viewSubject(sc){
   crumbs([{label:"Home",href:"#/"},{label:d.short}]);
   const cards = d.order.map(m=>{
     const mo = d.modules[m], st = modStats(sc,m);
-    return `<a class="card" href="#/${sc}/${m}">
-      <div class="card-top"><span class="card-title">${esc(mo.name)}${penBtn("m:"+sc+":"+m,mo.name)}${mo.custom?'<span class="tagx">yours</span>':""}</span>
+    return `<a class="card" href="#/${sc}/${m}"${mo.color?` style="--accent:${esc(mo.color)}"`:""}>
+      <div class="card-top"><span class="card-title">${esc(mo.name)}${penBtn("m:"+sc+":"+m,mo.name)}${hueBtn("m:"+sc+":"+m,mo.name)}${mo.custom?'<span class="tagx">yours</span>':""}</span>
       ${mo.chapters.length?`<span class="pct ${pct(st)?"":"zero"}">${pct(st)}%</span>`:""}</div>
       ${mo.chapters.length
         ? `<div class="rail"><i style="width:${pct(st)}%"></i></div><div class="card-note">${mo.chapters.map(c=>esc(chTitle(c))).join("<br>")}</div>`
@@ -1502,6 +1502,7 @@ function viewSubject(sc){
 
 function viewModule(sc,m){
   const d = subjOf(sc), mo = modOf(sc,m);
+  document.documentElement.style.setProperty("--accent", mo.color || d.accent);
   crumbs([{label:"Home",href:"#/"},{label:d.short,href:`#/${sc}`},{label:mo.name}]);
   const cards = mo.chapters.map(c=>{
     const st = chapStats(sc,c);
@@ -1510,7 +1511,7 @@ function viewModule(sc,m){
       <span class="pct ${pct(st)?"":"zero"}">${pct(st)}%</span></div>
       <div class="rail"><i style="width:${pct(st)}%"></i></div>${statLine(st)}</a>`;
   }).join("");
-  app.innerHTML = recBanner() + `<div class="pagehead"><div class="eyebrow">${esc(d.name)}</div><h1>${esc(mo.name)}</h1>${statLine(modStats(sc,m))}</div>
+  app.innerHTML = recBanner() + `<div class="pagehead"><div class="eyebrow">${esc(d.name)}</div><h1>${esc(mo.name)}${hueBtn("m:"+sc+":"+m,mo.name)}</h1>${statLine(modStats(sc,m))}</div>
     ${cards?`<div class="grid g2">${cards}</div>`:`<div class="empty">No chapters here yet — use the button above.</div>`}`;
 }
 
@@ -2571,9 +2572,16 @@ function activityName(id){
   return id==="sr" ? "Speedrun" : "Study";   /* sessions logged before it was removed */
 }
 function allActivities(){
-  return TREE.order.map(sc=>({id:sc, n:subjOf(sc).name, c:subjOf(sc).accent}))
-    .concat(actList().map(a=>({id:a.id, n:a.n, c:a.c})));
+  return everyActivity().filter(a=>!actHidden(a.id));
 }
+/* subjects and activities you have hidden stay out of the study log's pickers
+   and charts; nothing already logged against them is touched */
+function everyActivity(){
+  return TREE.order.map(sc=>({id:sc, n:subjOf(sc).name, c:subjOf(sc).accent, kind:"subject"}))
+    .concat(actList().map(a=>({id:a.id, n:a.n, c:a.c, kind:"activity",
+      custom:(S.x.acts||[]).some(x=>x.id===a.id)})));
+}
+const actHidden = id => !!((S.x.hideAct||{})[id]);
 let audioCtx = null;
 function chime(){
   try{
@@ -3043,9 +3051,9 @@ function viewStats(){
   const clipped = dayKey(mFrom) !== dayKey(from);
   const {mins, solved, totalMin, totalQ, wrongCount, wrongTags, spanDays, activeDays, longest, avgSession} = M;
 
-  const timeData = Object.keys(mins).map(a=>({n:activityName(a), v:mins[a], c:activityColor(a)})).sort((a,b)=>b.v-a.v);
-  const qData = Object.keys(solved).map(s=>({n:subjOf(s)?subjOf(s).name:s, v:solved[s], c:subjOf(s)?subjOf(s).accent:"#7aa2ff"})).sort((a,b)=>b.v-a.v);
-  const perDaySub = Object.keys(mins).map(a=>({n:activityName(a), v:Math.round(mins[a]/spanDays*10)/10, c:activityColor(a)})).sort((a,b)=>b.v-a.v);
+  const timeData = Object.keys(mins).filter(a=>!actHidden(a)).map(a=>({n:activityName(a), v:mins[a], c:activityColor(a)})).sort((a,b)=>b.v-a.v);
+  const qData = Object.keys(solved).filter(s=>!actHidden(s)).map(s=>({n:subjOf(s)?subjOf(s).name:s, v:solved[s], c:subjOf(s)?subjOf(s).accent:"#7aa2ff"})).sort((a,b)=>b.v-a.v);
+  const perDaySub = Object.keys(mins).filter(a=>!actHidden(a)).map(a=>({n:activityName(a), v:Math.round(mins[a]/spanDays*10)/10, c:activityColor(a)})).sort((a,b)=>b.v-a.v);
   const tagData = Object.keys(wrongTags).map((t,i)=>({n:t==="__none"?"Not tagged yet":tagName(t), v:wrongTags[t],
     c:t==="__none"?"#3d4b5c":PALETTE[i%PALETTE.length]})).sort((a,b)=>b.v-a.v);
 
@@ -3075,6 +3083,7 @@ function viewStats(){
            <button class="tbtn" data-step="0">Today</button>
            <button class="tbtn" data-step="1">Next →</button>`}
       <button class="tbtn" id="addLog">+ Add a session</button>
+      <button class="tbtn" id="mgAct">Subjects &amp; activities</button>
     </div>
     ${clipped?`<div class="hint" style="margin:-4px 0 12px">Counting from ${esc(dayKey(mFrom))} — your first day in the app.</div>`:""}
     ${cal}
@@ -3129,14 +3138,20 @@ function viewStats(){
   app.querySelectorAll("[data-logdel]").forEach(b=>b.onclick = ()=>{
     snapshot("remove session"); S.log.splice(Number(b.dataset.logdel),1); markDirty(); viewStats(); toastUndo("Session removed"); });
   document.getElementById("addLog").onclick = addLogEntry;
+  document.getElementById("mgAct").onclick = openActivityManager;
   document.getElementById("addDl").onclick = ()=>editDeadline(null);
   app.querySelectorAll("[data-dledit]").forEach(b=>b.onclick = ()=>editDeadline(b.dataset.dledit));
   app.querySelectorAll("[data-dldel]").forEach(b=>b.onclick = async ()=>{
     const d = S.dl.find(x=>x.id===b.dataset.dldel);
-    if(!await ask("Delete "+d.name+"?","The deadline goes; sessions logged towards it stay.","Delete",true)) return;
+    if(!await ask("Delete "+d.name+"?","The deadline goes and stops appearing in the study log and in Add a session. Every hour logged towards it stays exactly where it is.","Delete",true)) return;
     snapshot("delete deadline");
     S.dl = S.dl.filter(x=>x.id!==d.id);
+    /* the sessions keep their minutes; they just stop pointing at a deadline
+       that no longer exists */
+    S.log.forEach(l=>{ if(l[3]===d.id) l[3] = null; });
     if(TIMER.dl===d.id) TIMER.dl = null;
+    if(statView.line.dl===d.id) statView.line.dl = "";
+    if(goalView.dl===d.id) goalView.dl = "";
     if(statView.dl===d.id){ statView.dl=""; statView.mode="month"; }
     markDirty(); viewStats(); toastUndo("Deadline deleted"); });
   app.querySelectorAll("[data-dlstats]").forEach(b=>b.onclick = ()=>{
@@ -3310,20 +3325,26 @@ function lineGraphHTML(){
   const series = [{id:"__total", n:"Total", c:"var(--accent)", vals:total}]
     .concat(Object.keys(perAct).map(id=>({id, n:activityName(id), c:activityColor(id), vals:perAct[id]})));
   const hidden = statView.line.hidden;
-  const paths = series.filter(s=>!hidden.has(s.id)).map(s=>{
+  const live = series.filter(s=>!hidden.has(s.id));
+  const paths = live.map(s=>{
     const pts = s.vals.map((v,i)=>({x:x(i), y:y(v)}));
     return `<path d="${smoothPath(pts)}" fill="none" stroke="${s.c}" stroke-width="${s.id==="__total"?3:2}" stroke-linecap="round" opacity="${s.id==="__total"?1:0.85}"/>`;
   }).join("");
+  /* a dot on every day of every line you can click for that day in full */
+  const unit = statView.line.metric==="q" ? "questions" : "minutes";
+  const dots = live.map(s=>s.vals.map((v,i)=>
+    `<circle cx="${x(i)}" cy="${y(v)}" r="${s.id==="__total"?3.5:2.8}" fill="${s.c}" stroke="var(--ink-2)" stroke-width="1"
+      data-lineday="${esc(labels[i])}" style="cursor:pointer"><title>${esc(labels[i])} · ${esc(s.n)}: ${v} ${unit} — click for the day</title></circle>`).join("")).join("");
   const ticks = [0,0.25,0.5,0.75,1].map(f=>Math.round(maxV*f));
   const every = Math.max(1, Math.ceil(labels.length/6));
-  const live = S.dl.filter(d=>!d.hidden);
+  const liveDl = S.dl.filter(d=>!d.hidden);
   return `<div class="panel">
     <div class="hwrow" style="margin-bottom:10px;flex-wrap:wrap">
       <span class="blabel" style="margin:0">Last</span>
       <input class="numin" type="number" id="lineDays" min="2" max="180" value="${statView.line.days}" ${statView.line.dl?"disabled":""}>
       <span class="blabel" style="margin:0">days</span>
-      ${live.length?`<span class="blabel" style="margin:0">or for</span>
-        <select id="lineDl"><option value="">— pick a deadline —</option>${live.map(d=>`<option value="${esc(d.id)}"${statView.line.dl===d.id?" selected":""}>${esc(d.name)}</option>`).join("")}</select>`:""}
+      ${liveDl.length?`<span class="blabel" style="margin:0">or for</span>
+        <select id="lineDl"><option value="">— pick a deadline —</option>${liveDl.map(d=>`<option value="${esc(d.id)}"${statView.line.dl===d.id?" selected":""}>${esc(d.name)}</option>`).join("")}</select>`:""}
       <span class="spacer"></span>
       <button class="tbtn ${statView.line.metric==="time"?"on":""}" data-linemetric="time">Time studied</button>
       <button class="tbtn ${statView.line.metric==="q"?"on":""}" data-linemetric="q">Questions done</button>
@@ -3334,7 +3355,7 @@ function lineGraphHTML(){
     <svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
       ${ticks.map(t=>`<line x1="${padL}" x2="${W-padR}" y1="${y(t)}" y2="${y(t)}" stroke="var(--rule-soft)"/>
         <text x="${padL-8}" y="${y(t)+4}" text-anchor="end" fill="var(--text-3)" font-size="10" font-family="ui-monospace,monospace">${t}</text>`).join("")}
-      ${paths}
+      ${paths}${dots}
       ${labels.map((l,i)=>i%every?"":`<text x="${x(i)}" y="${H-padB+18}" text-anchor="middle" fill="var(--text-3)" font-size="10" font-family="ui-monospace,monospace">${l.slice(5)}</text>`).join("")}
     </svg>`}
   </div>`;
@@ -3351,6 +3372,45 @@ function wireLineGraph(){
     statView.line.hidden.has(id) ? statView.line.hidden.delete(id) : statView.line.hidden.add(id);
     viewStats();
   });
+  document.querySelectorAll("[data-lineday]").forEach(c=>c.onclick = ()=>dayDetail(c.dataset.lineday));
+}
+/* everything one day holds, from a point on the line */
+function dayDetail(k){
+  const sessions = S.log.filter(l=>dayKey(new Date(l[0]*60000))===k).sort((a,b)=>a[0]-b[0]);
+  const mins = {};
+  sessions.forEach(l=>{ mins[l[2]] = (mins[l[2]]||0) + l[1]; });
+  const rec = S.stat[k] || {};
+  const total = sessions.reduce((a,l)=>a+l[1],0);
+  const qTotal = Object.values(rec).reduce((a,b)=>a+b,0);
+  const hhmm = d => d.toLocaleTimeString(undefined,{hour:"2-digit",minute:"2-digit"});
+  const bar = (n,c,v,max) => `<div class="opt" style="cursor:default;align-items:center">
+      <span style="flex:1">${esc(n)}</span>
+      <span class="rail" style="flex:2;margin:0 10px"><i style="width:${max?Math.round(v/max*100):0}%;background:${c}"></i></span>
+      <b style="font-family:var(--mono)">${v}</b></div>`;
+  const maxMin = Math.max(1, ...Object.values(mins));
+  const maxQ = Math.max(1, ...Object.values(rec));
+  onEsc = ()=>{};
+  openModal(`<h3>${esc(new Date(k+"T00:00:00").toDateString())}</h3>
+    <div class="block"><div class="stats" style="margin:0">
+      <span><span class="k">time</span> <b>${Math.floor(total/60)}h ${total%60}m</b></span>
+      <span><span class="k">questions</span> <b>${qTotal}</b></span>
+      <span><span class="k">sessions</span> <b>${sessions.length}</b></span>
+    </div></div>
+    ${Object.keys(mins).length?`<div class="block"><div class="blabel">Minutes by activity</div><div class="opts">
+      ${Object.keys(mins).sort((a,b)=>mins[b]-mins[a]).map(a=>bar(activityName(a), activityColor(a), mins[a], maxMin)).join("")}</div></div>`:""}
+    ${Object.keys(rec).length?`<div class="block"><div class="blabel">Questions by subject</div><div class="opts">
+      ${Object.keys(rec).sort((a,b)=>rec[b]-rec[a]).map(sc=>bar(subjOf(sc)?subjOf(sc).name:sc, activityColor(sc), rec[sc], maxQ)).join("")}</div></div>`:""}
+    ${sessions.length?`<div class="block" style="max-height:240px;overflow:auto"><div class="blabel">Sessions</div>
+      <div class="opts">${sessions.map(l=>{ const st=new Date(l[0]*60000), en=new Date((l[0]+l[1])*60000);
+        const d = l[3] && S.dl.find(x=>x.id===l[3]);
+        return `<div class="opt" style="cursor:default"><span style="flex:1">${hhmm(st)} – ${hhmm(en)} · ${esc(activityName(l[2]))}${d?" · "+esc(d.name):""}</span><b>${l[1]}m</b></div>`;
+      }).join("")}</div></div>`:`<div class="empty">Nothing logged on this day.</div>`}
+    <div class="acts"><button class="btn" id="ddOpen">Open this day in the log</button>
+      <button class="btn primary" id="ddDone">Close</button></div>`);
+  modal.querySelector("#ddDone").onclick = closeModal;
+  modal.querySelector("#ddOpen").onclick = ()=>{
+    closeModal(); statView.anchor = new Date(k+"T00:00:00"); statView.mode = "day"; viewStats();
+  };
 }
 
 /* ============================================================
@@ -3361,11 +3421,31 @@ function wireLineGraph(){
 function subjectChapterStats(sc){
   return allChapters(sc).map(ch=>({ch, st:chapStats(sc,ch)})).filter(x=>x.st.done>0);
 }
+/* red at nothing, amber halfway, green as it approaches 100 */
+function scaleColor(v){
+  v = Math.max(0, Math.min(100, Number(v)||0));
+  const stops = [[0,[255,95,109]],[50,[255,212,59]],[100,[81,207,102]]];
+  let a = stops[0], b = stops[1];
+  if(v > 50){ a = stops[1]; b = stops[2]; }
+  const f = (v - a[0]) / (b[0] - a[0] || 1);
+  const mix = i => Math.round(a[1][i] + (b[1][i]-a[1][i])*f);
+  return `rgb(${mix(0)},${mix(1)},${mix(2)})`;
+}
+function spiderSubjects(){
+  const picked = statView.spider.subs;
+  const live = TREE.order.filter(sc=>!picked || picked.includes(sc));
+  return live.length ? live : TREE.order;
+}
+function metricValue(st){
+  if(statView.spider.metric==="acc") return acc(st)===null ? 0 : acc(st);
+  return pct(st);
+}
 function spiderDefaultData(){
-  return TREE.order.map(sc=>{
+  return spiderSubjects().map(sc=>{
     const rows = subjectChapterStats(sc);
-    const doneSum = rows.reduce((a,r)=>a+r.st.done,0), totalSum = rows.reduce((a,r)=>a+r.st.n,0);
-    return {label:subjOf(sc).short, value: totalSum?Math.round(doneSum/totalSum*100):0, c:subjOf(sc).accent};
+    const t = blank();
+    rows.forEach(r=>addTo(t, r.st));
+    return {label:subjOf(sc).short, value: metricValue(t), c:subjOf(sc).accent, kind:"subject", sc};
   });
 }
 function spiderCustomData(){
@@ -3376,31 +3456,36 @@ function spiderCustomData(){
   return chs.map(no=>{
     const ch = chapOf(sc,no); if(!ch) return null;
     const st = chapStats(sc,ch);
-    const value = statView.spider.metric==="acc"
-      ? (st.correct+st.wrong ? Math.round(st.correct/(st.correct+st.wrong)*100) : 0)
-      : (st.n ? Math.round(st.done/st.n*100) : 0);
     const mo = subjOf(sc).modules[ch.mod];
-    return {label:chTitle(ch), sub: mo?mo.name:"", value, c:subjOf(sc).accent};
+    return {label:chTitle(ch), sub: mo?mo.name:"", value: metricValue(st),
+            c:subjOf(sc).accent, kind:"chapter", sc, no:ch.no};
   }).filter(Boolean);
 }
 function radarSVG(data, size){
-  if(data.length<3) return `<div class="empty">Pick at least 3 chapters to draw a web.</div>`;
-  const R = size/2-54, cx=size/2, cy=size/2, n=data.length;
+  if(data.length<3) return `<div class="empty">Pick at least 3 to draw a web.</div>`;
+  const R = size/2-78, cx=size/2, cy=size/2, n=data.length;
   const angle = i => -Math.PI/2 + i*2*Math.PI/n;
   const pt = (i,frac) => [cx+R*frac*Math.cos(angle(i)), cy+R*frac*Math.sin(angle(i))];
+  /* the web is always drawn out of 100, so the rings read 25, 50, 75, 100 */
   const rings = [0.25,0.5,0.75,1].map(f=>`<polygon points="${data.map((_,i)=>pt(i,f).join(",")).join(" ")}" fill="none" stroke="var(--rule-soft)"/>`).join("");
+  const ringText = [0.25,0.5,0.75,1].map(f=>
+    `<text x="${cx+5}" y="${cy-R*f-3}" fill="var(--text-3)" font-size="${Math.round(size/60)}" font-family="ui-monospace,monospace">${Math.round(f*100)}</text>`).join("");
   const spokes = data.map((_,i)=>{ const [x,y]=pt(i,1); return `<line x1="${cx}" y1="${cy}" x2="${x}" y2="${y}" stroke="var(--rule-soft)"/>`; }).join("");
   const poly = data.map((d,i)=>pt(i,Math.max(0.02,d.value/100)).join(",")).join(" ");
-  const clip = (t,n) => t.length>n ? t.slice(0,n-1)+"…" : t;
+  const avg = Math.round(data.reduce((a,d)=>a+d.value,0)/data.length);
+  const web = scaleColor(avg);
+  const clip = (t,n2) => t.length>n2 ? t.slice(0,n2-1)+"…" : t;
+  const fs = Math.max(11, Math.round(size/48));
   /* the module or reference book sits above the chapter, so two chapters of the
      same name in different modules can be told apart */
-  const labels = data.map((d,i)=>{ const [x,y]=pt(i,1.2);
-    const top = d.sub ? `<tspan x="${x}" dy="-0.5em" font-size="9" opacity="0.72">${esc(clip(d.sub,22))}</tspan>` : "";
-    return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" fill="var(--text-2)" font-size="11" font-family="ui-sans-serif">${top}<tspan x="${x}" dy="${d.sub?"1.2em":"0"}">${esc(clip(d.label,16))}</tspan></text>`; }).join("");
+  const labels = data.map((d,i)=>{ const [x,y]=pt(i,1.16);
+    const top = d.sub ? `<tspan x="${x}" dy="-0.5em" font-size="${Math.round(fs*0.82)}" opacity="0.72">${esc(clip(d.sub,24))}</tspan>` : "";
+    return `<text x="${x}" y="${y}" text-anchor="middle" dominant-baseline="middle" fill="var(--text-2)" font-size="${fs}" font-family="ui-sans-serif">${top}<tspan x="${x}" dy="${d.sub?"1.2em":"0"}">${esc(clip(d.label,22))}</tspan><tspan x="${x}" dy="1.2em" font-size="${Math.round(fs*0.9)}" fill="${scaleColor(d.value)}">${d.value}%</tspan></text>`; }).join("");
   const dots = data.map((d,i)=>{ const [x,y]=pt(i,Math.max(0.02,d.value/100));
-    return `<circle cx="${x}" cy="${y}" r="4" fill="${d.c}"><title>${esc(d.sub?d.sub+" · "+d.label:d.label)}: ${d.value}%</title></circle>`; }).join("");
+    const id = d.kind==="chapter" ? "chapter:"+d.sc+":"+d.no : "subject:"+d.sc;
+    return `<circle class="rnode" cx="${x}" cy="${y}" r="${Math.max(5,size/90)}" fill="${scaleColor(d.value)}" stroke="var(--ink-2)" stroke-width="2" data-spidernode="${esc(id)}" style="cursor:pointer"><title>${esc(d.sub?d.sub+" · "+d.label:d.label)}: ${d.value}% — click for more</title></circle>`; }).join("");
   return `<svg viewBox="0 0 ${size} ${size}" style="width:100%;max-width:${size}px;height:auto;display:block;margin:0 auto">
-    ${rings}${spokes}<polygon points="${poly}" fill="var(--accent)" fill-opacity="0.22" stroke="var(--accent)" stroke-width="2"/>${dots}${labels}</svg>`;
+    ${rings}${spokes}${ringText}<polygon points="${poly}" fill="${web}" fill-opacity="0.2" stroke="${web}" stroke-width="2"/>${dots}${labels}</svg>`;
 }
 function spiderHTML(){
   const mode = statView.spider.mode;
@@ -3408,15 +3493,20 @@ function spiderHTML(){
   const sub = statView.spider.subj;
   const started = sub ? subjectChapterStats(sub) : [];
   const curChapters = statView.spider.chapters || started.slice(0,7).map(r=>r.ch.no);
+  const shown = statView.spider.subs;
+  const metricBtns = `<button class="tbtn ${statView.spider.metric==="pct"?"on":""}" data-spidermetric="pct">% completed</button>
+      <button class="tbtn ${statView.spider.metric==="acc"?"on":""}" data-spidermetric="acc">% accuracy</button>`;
   return `<div class="panel">
-    <div class="hwrow" style="margin-bottom:14px">
+    <div class="hwrow" style="margin-bottom:14px;flex-wrap:wrap">
       <button class="tbtn ${mode==="subjects"?"on":""}" data-spidermode="subjects">All subjects</button>
       <button class="tbtn ${mode==="custom"?"on":""}" data-spidermode="custom">One subject, by chapter</button>
+      <span class="spacer"></span>${metricBtns}
     </div>
+    ${mode==="subjects"?`<div class="hint" style="margin-bottom:8px">Which subjects to show — everything is drawn out of 100.</div>
+      <div class="hwrow" style="margin-bottom:14px;flex-wrap:wrap">${TREE.order.map(sc=>
+        `<button class="actbtn ${(!shown||shown.includes(sc))?"on":""}" data-spidersub="${esc(sc)}" style="${(!shown||shown.includes(sc))?"":"opacity:.45"}"><i style="background:${subjOf(sc).accent}"></i>${esc(subjOf(sc).name)}</button>`).join("")}</div>`:""}
     ${mode==="custom"?`<div class="hwrow" style="margin-bottom:12px;flex-wrap:wrap">
       <select id="spiderSubj"><option value="">Choose a subject…</option>${TREE.order.map(sc=>`<option value="${esc(sc)}"${sub===sc?" selected":""}>${esc(subjOf(sc).name)}</option>`).join("")}</select>
-      <button class="tbtn ${statView.spider.metric==="pct"?"on":""}" data-spidermetric="pct">% completed</button>
-      <button class="tbtn ${statView.spider.metric==="acc"?"on":""}" data-spidermetric="acc">% accuracy</button>
     </div>
     ${sub && started.length ? `<div class="hint" style="margin-bottom:10px">Pick 3 to 7 chapters — only ones with at least one solved question are listed.</div>
       ${subjOf(sub).order.filter(m=>started.some(r=>String(r.ch.mod)===String(m))).map(m=>`
@@ -3425,11 +3515,62 @@ function spiderHTML(){
           `<button class="tbtn ${curChapters.includes(r.ch.no)?"on":""}" data-spiderchap="${r.ch.no}">${esc(chTitle(r.ch))}</button>`).join("")}</div>`).join("")}
       <div style="height:6px"></div>`
       : sub ? `<div class="hint" style="margin-bottom:10px">No questions solved in this subject yet.</div>` : ""}`:""}
-    ${data.length ? radarSVG(data,340) : `<div class="empty">${mode==="custom"&&!sub?"Choose a subject to begin.":"Nothing solved yet."}</div>`}
+    ${data.length ? radarSVG(data,700) : `<div class="empty">${mode==="custom"&&!sub?"Choose a subject to begin.":"Nothing solved yet."}</div>`}
+    ${data.length>=3?`<div class="hint" style="text-align:center">Click any point on the web for a closer look.</div>`:""}
   </div>`;
+}
+/* the closer look behind a point on the web */
+function spiderNodeStats(id){
+  const p = id.split(":");
+  if(p[0]==="subject"){
+    const sc = p[1], sub = subjOf(sc); if(!sub) return;
+    const st = subjStats(sc);
+    const rows = sub.order.map(m=>({m, mo:sub.modules[m], st:modStats(sc,m)})).filter(r=>r.st.n);
+    detailModal(sub.name, st, rows.map(r=>({
+      name:r.mo.name, st:r.st, href:`#/${sc}/${r.m}`, note:r.mo.chapters.length+" chapters"})));
+  } else {
+    const sc = p[1], no = p[2], ch = chapOf(sc,no); if(!ch) return;
+    const st = chapStats(sc,ch);
+    const rows = exList(sc,ch).map(e=>({name:e.name, st:exStats(sc,ch,e.code),
+      href:`#/${sc}/${ch.mod}/${ch.no}/${e.code}`, note:qCount(sc,ch,e.code)+" questions"}));
+    detailModal(chTitle(ch), st, rows);
+  }
+}
+/* one shape for "here is the total, and here is what it is made of" */
+function detailModal(title, st, rows){
+  const a = acc(st);
+  onEsc = ()=>{};
+  openModal(`<h3>${esc(title)}</h3>
+    <div class="block"><div class="stats" style="margin:0">
+      <span><span class="k">done</span> <b>${st.done}</b>/${st.n}</span>
+      <span><span class="k">completed</span> <b style="color:${scaleColor(pct(st))}">${pct(st)}%</b></span>
+      <span><span class="k">accuracy</span> <b style="color:${a===null?"var(--text-2)":scaleColor(a)}">${a===null?"—":a+"%"}</b></span>
+      <span><span class="k">correct</span> <b>${st.correct}</b></span>
+      <span><span class="k">wrong</span> <b>${st.wrong}</b></span>
+      <span><span class="k">stuck</span> <b>${st.cant}</b></span>
+      <span><span class="k">review</span> <b>${st.flag}</b></span>
+    </div></div>
+    ${rows.length?`<div class="block" style="max-height:320px;overflow:auto"><div class="opts">
+      ${rows.map(r=>{ const ra = acc(r.st); return `<a class="opt" href="${esc(r.href||"#/")}" data-detailgo="1" style="align-items:center">
+        <span style="flex:1">${esc(r.name)} <span class="hint" style="margin:0">${esc(r.note||"")}</span></span>
+        <span class="tagx" style="color:${scaleColor(pct(r.st))}">${pct(r.st)}% done</span>
+        <span class="tagx">${ra===null?"—":ra+"% correct"}</span></a>`; }).join("")}
+    </div></div>`:""}
+    <div class="acts"><button class="btn primary" id="dmDone">Close</button></div>`);
+  modal.querySelector("#dmDone").onclick = closeModal;
+  modal.querySelectorAll("[data-detailgo]").forEach(a2=>a2.onclick = ()=>{ closeModal(); });
 }
 function wireSpider(){
   document.querySelectorAll("[data-spidermode]").forEach(b=>b.onclick = ()=>{ statView.spider.mode = b.dataset.spidermode; viewStats(); });
+  document.querySelectorAll("[data-spidersub]").forEach(b=>b.onclick = ()=>{
+    const sc = b.dataset.spidersub;
+    let cur = statView.spider.subs || TREE.order.slice();
+    cur = cur.includes(sc) ? cur.filter(x=>x!==sc) : cur.concat([sc]);
+    if(!cur.length){ toast("Keep at least one subject on the web"); return; }
+    statView.spider.subs = TREE.order.filter(x=>cur.includes(x));
+    viewStats();
+  });
+  document.querySelectorAll("[data-spidernode]").forEach(c=>c.onclick = ()=>spiderNodeStats(c.dataset.spidernode));
   const sel = document.getElementById("spiderSubj");
   if(sel) sel.onchange = e=>{ statView.spider.subj = e.target.value; statView.spider.chapters = null; viewStats(); };
   document.querySelectorAll("[data-spidermetric]").forEach(b=>b.onclick = ()=>{ statView.spider.metric = b.dataset.spidermetric; viewStats(); });
@@ -3516,6 +3657,46 @@ function editDeadline(id){
   };
 }
 /* a session you forgot to time */
+/* which subjects and activities the study log offers and charts */
+function openActivityManager(){
+  onEsc = ()=>viewStats();
+  const draw = ()=>{
+    const rows = everyActivity().map(a=>{
+      const off = actHidden(a.id);
+      return `<div class="opt" style="align-items:center;cursor:default">
+        <span data-actshow="${esc(a.id)}" role="checkbox" tabindex="0" style="display:flex;align-items:center;gap:9px;flex:1;cursor:pointer;${off?"opacity:.5":""}">
+          <span class="bx" style="border-color:${off?"var(--rule)":"var(--ok)"};background:${off?"transparent":"var(--ok)"};color:${off?"transparent":"#04220f"}">✓</span>
+          <i style="width:10px;height:10px;border-radius:99px;background:${a.c};display:inline-block"></i>
+          <span>${esc(a.n)} <span class="tagx">${a.kind==="subject"?"subject":"activity"}</span></span></span>
+        ${a.custom?`<button class="x" data-actdel="${esc(a.id)}" title="Delete this activity">×</button>`:""}
+      </div>`;
+    }).join("");
+    paintModal("actmg", `<h3>Subjects &amp; activities</h3>
+      <p>Untick anything you do not want offered when you log a session, or shown in the study log's charts. Nothing already logged is changed — untick a subject you do not study and it simply stops appearing here. An activity you added yourself can be deleted outright.</p>
+      <div class="block" style="max-height:340px;overflow:auto"><div class="opts">${rows}</div></div>
+      <div class="acts"><button class="btn primary" id="amDone">Done</button></div>`);
+    modal.querySelectorAll("[data-actshow]").forEach(el=>{
+      const toggle = ()=>{
+        const id = el.dataset.actshow;
+        snapshot("show or hide in the study log");
+        if(actHidden(id)) delete S.x.hideAct[id]; else S.x.hideAct[id] = true;
+        markDirty(); draw();
+      };
+      el.onclick = toggle;
+      el.onkeydown = e=>{ if(e.key===" "||e.key==="Enter"){ e.preventDefault(); toggle(); } };
+    });
+    modal.querySelectorAll("[data-actdel]").forEach(b=>b.onclick = async ()=>{
+      const id = b.dataset.actdel;
+      const a = everyActivity().find(x=>x.id===id); if(!a) return;
+      if(!await ask("Delete "+a.n+"?","Sessions already logged under it keep their minutes and carry on showing its name.","Delete",true)){ draw(); return; }
+      snapshot("delete activity");
+      S.x.acts = (S.x.acts||[]).filter(x=>x.id!==id);
+      delete S.x.hideAct[id];
+      markDirty(); draw(); });
+    modal.querySelector("#amDone").onclick = ()=>{ closeModal(); viewStats(); };
+  };
+  draw();
+}
 function addLogEntry(){
   const now = new Date();
   const hhmm = now.toTimeString().slice(0,5);
@@ -3688,7 +3869,7 @@ function viewMarks(){
       <p class="sub">Percentage works itself out from total and scored. Everything else is yours to fill in.</p></div>
     <div class="tabstrip">
       ${S.marks.tables.map(x=>`<button class="ttab ${x.id===t.id?"on":""}" data-tbl="${esc(x.id)}">${esc(x.n)}
-        ${x.id===t.id?`<span class="pen" style="opacity:.7" data-tblren="${esc(x.id)}">✎</span>`:""}</button>`).join("")}
+        ${x.id===t.id?`<span class="pen" style="opacity:.7" data-tblren="${esc(x.id)}">✎</span>${S.marks.tables.length>1?`<span class="pen" style="opacity:.7" data-tbldel="${esc(x.id)}" title="Delete this table">×</span>`:""}`:""}</button>`).join("")}
       <button class="plusbtn" id="addTbl" title="New table">+</button>
     </div>
     <div class="tblwrap"><table class="mk">
@@ -3726,8 +3907,19 @@ function viewMarks(){
   document.getElementById("gCol").onchange = e=>{ graphCol = e.target.value; viewMarks(); };
   document.getElementById("gX").onchange = e=>{ graphX = e.target.value; viewMarks(); };
   app.querySelectorAll("[data-tbl]").forEach(b=>b.onclick = e=>{
-    if(e.target.closest("[data-tblren]")) return;
+    if(e.target.closest("[data-tblren]") || e.target.closest("[data-tbldel]")) return;
     S.marks.cur = b.dataset.tbl; viewMarks(); });
+  app.querySelectorAll("[data-tbldel]").forEach(b=>b.onclick = async e=>{
+    e.stopPropagation();
+    const tb = S.marks.tables.find(x=>x.id===b.dataset.tbldel);
+    if(!tb || S.marks.tables.length<2) return;
+    if(!await ask("Delete "+tb.n+"?", tb.rows.length
+        ? "Its "+tb.rows.length+" test"+(tb.rows.length>1?"s":"")+" and columns go with it. Undo puts them back."
+        : "It has no tests in it.", "Delete", true)){ viewMarks(); return; }
+    snapshot("delete table");
+    S.marks.tables = S.marks.tables.filter(x=>x.id!==tb.id);
+    if(S.marks.cur===tb.id) S.marks.cur = S.marks.tables[0].id;
+    markDirty(); viewMarks(); toastUndo("Table deleted"); });
   app.querySelectorAll("[data-tblren]").forEach(b=>b.onclick = async e=>{
     e.stopPropagation();
     const tb = S.marks.tables.find(x=>x.id===b.dataset.tblren);
@@ -3770,7 +3962,7 @@ function viewMarks(){
       t.rows[ri].v[inp.dataset.col] = inp.value;
       markDirty();
       const tr = inp.closest("tr");
-      t.cols.forEach((c,ci)=>{ if(c.calc) tr.children[ci+1].textContent = calcCell(t, t.rows[ri], c); });
+      t.cols.forEach((c,ci)=>{ if(c.calc) tr.children[ci].textContent = calcCell(t, t.rows[ri], c); });
       if(graphCol){ clearTimeout(inp._g); inp._g = setTimeout(()=>{ const a=document.activeElement, id=a&&a.dataset?a.dataset.col:null;
         viewMarks(); if(id){ const el=document.querySelector(`tr[data-row="${ri}"] input[data-col="${id}"]`); if(el){ el.focus(); el.setSelectionRange(el.value.length,el.value.length); } } }, 600); }
     };
@@ -5033,147 +5225,69 @@ function manFaq(items){
 }
 function viewManual(){
   crumbs([{label:"Home",href:"#/"},{label:"Manual"}]);
-  const sec = (id, title) => `<h3 class="sec" id="man-${id}">${title}</h3>`;
-  const jumps = [["start","Quick start"],["shape","How it's organised"],["account","Account & saving"],["subjects","Subjects"],
-    ["hw","Homework"],["coll","Collections"],["study","Study log"],["stats","Statistics"],["goals","Goals"],
-    ["rev","Revision"],["tests","Marks & Analysis"],["tools","Top bar & shortcuts"],["faq","Questions"]];
-  app.innerHTML = `<div class="man">
-    <div class="pagehead"><div class="eyebrow">Manual</div>
-      <h1>How BTracker works</h1>
-      <p class="sub">Everything the app can do, in the order you will probably need it. This page is only reading material — nothing here changes your data.</p></div>
+  app.innerHTML = `<div class="man"><div class="pagehead"><div class="eyebrow">Manual</div>
+      <h1>What this app does, and how to get the most out of it</h1>
+      <p class="sub">Everything on this page is static — nothing here is saved or changes your data.</p></div>
 
-    <div class="jump">${jumps.map(([id,l])=>`<button data-jump="man-${id}">${esc(l)}</button>`).join("")}</div>
-
-    ${sec("start","Quick start")}
-    <ol>
-      <li><b>Open a subject</b> on the Home page and drill down: module → chapter → exercise.</li>
-      <li><b>Tick questions as you solve them.</b> Mark each one correct or wrong, and say <em>why</em> when it was wrong.</li>
-      <li><b>Put pending work in Homework</b> so you always know what is left.</li>
-      <li><b>Start a timer in the Study log</b> so your hours land in Statistics and Goals.</li>
-      <li><b>Just keep going.</b> Everything is saved to your account automatically — sign in on any device and it is all there.</li>
-    </ol>
-    <div class="glance">
-      <div><b>Subjects</b><span>The syllabus down to every question.</span></div>
-      <div><b>Homework</b><span>Ranges, tasks and backlog with due dates.</span></div>
-      <div><b>Collections</b><span>Stars, retries, wrong answers, notes and your own lists.</span></div>
-      <div><b>Study log</b><span>Pomodoro, endless timer and speedruns.</span></div>
-      <div><b>Statistics</b><span>Time, questions, mistakes, heatmap, graphs, radar.</span></div>
-      <div><b>Goals</b><span>Targets per day, week, month or deadline.</span></div>
-      <div><b>Revision</b><span>Chapters that fade from green to red until you revise.</span></div>
-      <div><b>Marks</b><span>Test scores in tables and line graphs.</span></div>
-      <div><b>Analysis</b><span>Test-by-test breakdowns, ranks and notes.</span></div>
-    </div>
-
-    ${sec("shape","How it's organised")}
-    <p>Every question you solve lives at one address: a subject, inside a module, inside a chapter, inside an exercise. Ticks, notes, stars and homework are all attached to that address. That is why renaming or renumbering a chapter never loses anything — only the label you see changes, not the key underneath.</p>
+    <h3 class="sec">The shape of the app</h3>
+    <p>Every question you ever solve lives at one address: a subject, inside a module, inside a chapter, inside an exercise. Progress, notes, stars, and homework are all built on that address, which is why renaming or renumbering a chapter never loses anything — only the label changes, not the underlying key.</p>
     ${svgTree()}
-    <p>The syllabus for Maths, Physics and Chemistry is built in (modules 1 to 6). You can add your own subjects, modules, chapters and exercises next to it, and bring in ready-made <b>reference books</b> (see Subjects).</p>
+    <p>Nothing here needs a server. The whole app is one HTML file; your data lives in this browser and in whatever code or file you choose to save.</p>
 
-    ${sec("account","Your account and saving")}
-    ${svgFlow([["You work","tick, note, time"],["Saved to your account","a few seconds later"],["Any device","sign in, same data"]])}
-    <p>Your progress lives in your account, not in the browser. A few seconds after you stop making changes it is sent to the cloud, and it is sent immediately if you switch tabs, close the page or open the profile menu. On another phone or computer, sign in with the same login and everything is there.</p>
+    <h3 class="sec">Saving your progress</h3>
+    ${svgFlow([["Working in the app",""],["Autosave to this browser","every ~1s"],["Save button","code or .txt"],["Paste back later","any device"]])}
+    <p>The app autosaves to this browser continuously — the dot beside <b>Save</b> turns green once it has. That protects you against closing the tab, but not against clearing your browser data or switching devices. For that, open <b>Save</b> and either copy the code or download it as a timestamped <code>.txt</code> file, then paste or upload it back whenever you need to. The code is checksummed, so a truncated paste is rejected with a message rather than silently loading half your work.</p>
+    <div class="tip">Keep a save file somewhere outside the browser — a notes app, cloud drive, or email to yourself — after any long session.</div>
+
+    <h3 class="sec">Subjects tab</h3>
+    <p>Browse Math, Physics and Chemistry down to individual questions. Each question row has a tick, correct/wrong/could-not-solve, a review flag, notes (which can contain <code>$\\text{LaTeX}$</code>), star rating, and a bookmark. Drag down the question numbers to select a run and act on all of them together, or type a range like <code>4, 7, 8-9, 45-60</code> in the box above the table and apply one status to all of them at once.</p>
     <ul>
-      <li><b>The Sync button</b> in the top bar shows the state with a dot:
-        <span class="dot ok" style="display:inline-block;vertical-align:middle"></span> saved ·
-        <span class="dot on" style="display:inline-block;vertical-align:middle"></span> waiting, saving or offline ·
-        <span class="dot" style="display:inline-block;vertical-align:middle;background:var(--no)"></span> paused. Press it to <b>Save now</b>.</li>
-      <li><b>Your profile picture</b> (top right) opens the account menu: manage your account and security, and sign out. Account deletion appears there too where it has been switched on.</li>
-      <li><b>Two devices at once.</b> If another device saved after this screen loaded, nothing is overwritten. A dialog lets you use the saved copy, keep this screen, or decide later — saving stays paused until you choose.</li>
-      <li><b>Offline or a bad connection.</b> Changes stay on screen and are retried automatically. The browser warns you if you try to close the page while something is still unsaved.</li>
-      <li><b>Sync → Import or export a code (advanced)</b> lets you bring in progress from an old save code or file, or download an optional off-site backup.</li>
-    </ul>
-    <div class="tip">Use one device at a time when you can. Opening the app on your phone while it is still open on your laptop is what triggers the "newer copy" dialog.</div>
-
-    ${sec("subjects","Subjects")}
-    <p>Open a subject and go down to an exercise. Each question is a row with:</p>
-    <ul>
-      <li><b>Solved</b> tick, and <b>✓ / ✕</b> for correct or wrong. Marking wrong asks <b>why</b> — pick as many mistake reasons as apply, or add your own.</li>
-      <li><b>RETRY</b> flags it for another go. <b>STUCK</b> means you could not solve it — an honest attempt, but it does not count as solved.</li>
-      <li><b>Stars</b> (1 to 3) for how important or hard it was, a <b>note</b> (maths goes between dollar signs), and a <b>bookmark</b> to save it into a collection.</li>
-    </ul>
-    <p>To work faster: use <b>Show / Stars / Order</b> to filter the table; type a range like <code>4, 7, 8-9, 45-60</code> in the <b>Apply to questions</b> box; or drag down the question numbers to select a run, then mark them together or send them to homework.</p>
-
-    <details><summary>Adding and organising (the + button, or press N)</summary>
-      <p>The <b>+</b> button at the bottom left offers whatever fits the page you are on — a subject, module, chapter or exercise. Press <kbd>N</kbd> for the most common one. Hover any card and press <b>✎</b> to rename it; chapters can be renumbered too. Everything recorded stays with the chapter.</p></details>
-    <details><summary>Reference books</summary>
-      <p>On the Home page press <b>+ → Add reference books…</b> for ready-made modules of popular books — HC Verma (both volumes), SBT, Irodov, Cengage Maths, DC Pandey, Narendra Awasti, VK Jaiswal and MS Chouhan. Nothing is added until you pick it. Each book becomes a module with a chapter per topic and an exercise per section. SBT also collects its recommended questions into their own collection.</p>
-      <p>A book is copied into your account when you add it, so later changes to the book in a new version of the app do not alter the copy you already have.</p></details>
-    <details><summary>Merge chapters</summary>
-      <p>Handy when you were already tracking a chapter that the syllabus later added. Press <b>+ → Merge chapters…</b>, pick two or more chapters, then choose which one to keep, which exercises come across from each, what the merged chapter is called and numbered, and which module it lives in. Your ticks, notes and homework move with it.</p></details>
-    <details><summary>Select in bulk: copy, move, delete</summary>
-      <p>From a module or chapter page choose <b>Select chapters…</b> or <b>Select exercises…</b>. Then <b>Copy</b> (open the place you want them, press <b>+</b>, choose Paste), <b>Move…</b> to another module or chapter, or <b>Delete</b>. Any chapter can be moved, including built-in ones. Delete only works on things you added yourself — built-in items in a selection are skipped.</p></details>
-
-    ${sec("hw","Homework")}
-    <p>Three kinds, chosen at the top of the form:</p>
-    <ul>
-      <li><b>Questions</b> — a range from one exercise, such as <code>20-30, 45</code>. Each question is a chip: click to tick it, double-click to edit its result, stars and note, or drag across several to select them.</li>
-      <li><b>Something else</b> — any task, tied to a subject, module, chapter or exercise, or to none of them.</li>
-      <li><b>Backlog</b> — a lecture or a whole exercise you have fallen behind on. Tied to an exercise, it counts down by itself ("43 of 65 left") as you tick.</li>
-    </ul>
-    <p>Every item can have a due date and an <b>Edit</b> button. Sort <b>by location</b> or <b>most urgent first</b>. When every question on a list is done it moves to <b>Finished</b>, with an undo offer if that was a slip.</p>
-
-    ${sec("coll","Collections")}
-    <p>Ready-made collections gather questions automatically: 1, 2 and 3 stars, Retry, Wrong (filter by mistake reason), Stuck, and anything with a note. <b>My notes</b> holds notes that belong to no particular question, and <b>Exam notes</b> shows the notes you wrote on tests. Make your own collections and bookmark any question into as many as you like. Saving into a star collection sets that star on the question.</p>
-
-    ${sec("study","Study log")}
-    <p>Pick what you are studying — a subject, Revision, Mock test, or an activity of your own — and optionally a deadline you are working towards. Then choose a mode at the top:</p>
-    <ul>
-      <li><b>Pomodoro</b> — focus and break lengths, optional auto-start for each, and a chime you control in Settings.</li>
-      <li><b>Endless</b> — counts up like a stopwatch, suggests a break every two hours and stops itself at twenty.</li>
-      <li><b>Speedrun</b> — set a number of questions and a time limit, and optionally race one of your homework lists or an exercise. Three rings show time left, where you should be, and where you are. A tap-to-finish button is optional; without it you confirm what you finished at the end. Speedruns also feed the average time per question in Statistics.</li>
-    </ul>
-    <p>Sessions you forgot to time can be added from Statistics. Homework with a due date is listed at the bottom of the page.</p>
-
-    ${sec("stats","Statistics")}
-    <p><b>Deadlines</b> sit at the top: a name, start and end dates, the subjects it covers, goals and reflections. <b>Finished</b> hides one without deleting it. Below that, look at any day, week, month, custom range, or one deadline's own span. You get time studied, questions solved, averages, longest and average session, days studied, wrong answers, and pies for time, questions and mistake reasons. Averages start from your first day in the app, never from before.</p>
-    <ul>
-      <li><b>Study heatmap</b> — a calendar of the last N days, shaded by <em>time studied</em> or <em>questions done</em>, with subjects you can switch on and off.</li>
-      <li><b>Study line graph</b> — smooth curves per subject with a thicker total line. Choose the last N days or a deadline, switch between time and questions, and hide any line.</li>
-      <li><b>Syllabus radar</b> — how much you have covered. Compare <em>all subjects</em>, or pick 3 to 7 started chapters of one subject. Measure <em>% completed</em> or <em>% accuracy</em>.</li>
-    </ul>
-    <div class="tip">The <b>◉ Stats</b> button in the top bar pauses counting. Use it while you catch up on old work so a big tick session does not distort today's numbers.</div>
-
-    ${sec("goals","Goals")}
-    <p>Set targets for questions solved, hours studied, and how much your mistake rate should change. Each period type — day, week, month, range, deadline — keeps its own targets. You see whether you met each one and the change from the previous period.</p>
-
-    ${sec("rev","Revision")}
-    <p>Add chapters you want to keep fresh, each with a weight from 1 to 10. Every chapter shows a bar that fades from green to red the longer it has been since you last revised it (you choose how many days it takes, 14 by default). Press <b>+</b> on a chapter each time you go back over it and it turns green again.</p>
-    <ul>
-      <li><b>🔔 Reminders</b> — pick a date, optionally repeat weekly or monthly, and add a note. Due reminders show on the tab and at the top of the page.</li>
-      <li><b>Revision roulette</b> — press <b>+ → Revision roulette</b> and it picks a chapter for you at random, favouring the stalest.</li>
-      <li>You can add chapters for one deadline's subjects only, and heavier chapters pull the overall freshness figure more.</li>
+      <li>Press <kbd>N</kbd> anywhere to add whatever fits that level — a subject, module, chapter, or exercise.</li>
+      <li>Hover any card and press <b>✎</b> to rename or renumber it without opening it.</li>
+      <li><b>Could not solve</b> counts as an honest attempt but not as solved — it will not inflate your daily question count.</li>
     </ul>
 
-    ${sec("tests","Marks and Analysis")}
-    <p><b>Marks</b> is a table per test series (BTest, MHTCET, ALT, or your own). Percentage works itself out from total and scored. Drag the ⠿ handle to reorder rows or columns, and plot any column against any other as a line graph.</p>
-    <p><b>Analysis</b> goes deeper on each test: a donut per subject (green scored, red wrong, grey left), ranks and aggregate with the average worked out, a table of questions worth revisiting with mistake tags, and notes that also appear under Exam notes in Collections. Series settings set the marks per subject for every test in a series. Marks in Analysis and in the Marks tab are the same numbers — change either and the other follows.</p>
+    <h3 class="sec">Homework tab</h3>
+    <p>Three kinds of homework: a range of <b>questions</b> from a specific exercise, <b>something else</b> — any task, optionally tied to a subject, module, chapter or exercise, or none of them — and <b>backlog</b>, for entire exercises or lectures you've fallen behind on. A backlog item tied to an exercise tracks itself against your real ticks and shows "43 of 65 left" on its own.</p>
+    <p>Drag across question chips to bulk-mark them, or double-click one to edit its result, stars and note directly. Every item has an <b>Edit</b> button for its range and due date, and a due date is picked from a calendar. Sort by location or by how urgent each list is.</p>
 
-    ${sec("tools","Top bar and shortcuts")}
+    <h3 class="sec">Collections tab</h3>
+    <p>Automatic collections for 1/2/3-star questions, Retry, Wrong (filterable by mistake tag), Stuck, and any question with a note. <b>My notes</b> holds notes that aren't about any particular question — write one straight in. Make your own collections and bookmark any question into as many as you like from the ★ at the end of its row.</p>
+
+    <h3 class="sec">Study log tab</h3>
+    <p>Three modes, switched at the top of the page:</p>
     <ul>
-      <li><b>🎨</b> changes the theme — dark, dark red, dark green or light.</li>
-      <li><b>◉ Stats</b> pauses or resumes counting ticks towards Statistics.</li>
-      <li><b>↶</b> undoes the last change, up to 25 deep. Button ticks are not snapshotted one by one; undo targets additions, deletions and bulk changes.</li>
-      <li><b>Sync</b> shows your save state. <b>Profile picture</b> opens your account menu.</li>
-      <li><kbd>N</kbd> adds whatever fits the page · <kbd>Ctrl</kbd>+<kbd>Z</kbd> undo · <kbd>Esc</kbd> closes a dialog or clears a selection.</li>
+      <li><b>Pomodoro</b> — focus and break lengths, optional auto-start for either, and a chime you control from Settings.</li>
+      <li><b>Endless</b> — counts up like a stopwatch, nudges you to take a break every two hours, and stops itself at twenty.</li>
+      <li><b>Speedrun</b> — set a number of questions and a time limit, optionally against a real exercise or just to practice. A tap-to-finish button is optional; turn it off and you'll confirm what you actually finished when you stop. Three rings track time, expected pace, and your count, with a box of questions to the right that fill in as you go.</li>
     </ul>
+    <p>Pick a subject (or a custom activity) and, if you like, a deadline you're working towards — both are remembered for your next session.</p>
 
-    ${sec("faq","Questions")}
+    <h3 class="sec">Statistics tab</h3>
+    <p>Deadlines live at the top, each with a start and end date, related subjects, goals and reflections, and a <b>Finished</b> button that hides it without deleting it — a finished deadline also disappears from the Study log's picker. Below that, view any day, week, month, custom range, or a single deadline's own span. Numbers are counted from your first day in the app, never averaged over days before you started.</p>
+
+    <h3 class="sec">Goals tab</h3>
+    <p>Targets for questions solved, hours studied, and how much your mistake rate should change — one set of targets per period, so a daily target and a monthly one never collide. Shows whether you met it and the percentage change from the period before.</p>
+
+    <h3 class="sec">Marks tab</h3>
+    <p>BTest, MHTCET, ALT, and any tables you add. Percentage works itself out from total and scored. Drag the ⠿ handle on any row or column header to reorder them. Plot any column against any other as a line graph.</p>
+
+    <h3 class="sec">Analysis tab</h3>
+    <p>Folders of test series — BTest, ALT, MHTCET by default. Each test shows a donut per subject (green scored, red wrong, grey left — a full green ring at full marks), rank tiles, an aggregate with the average worked out for you, a table of questions worth revisiting with mistake tags, and notes that file into an <b>Exam notes</b> collection. Marks here and in the Marks tab are the same numbers from either side.</p>
+
+    <h3 class="sec">Undo</h3>
+    <p>The ↶ button (or <kbd>Ctrl</kbd>+<kbd>Z</kbd>) undoes additions, deletions, and bulk changes, twenty-five deep. Single question ticks aren't snapshotted individually — undo targets the things that are awkward to redo by hand.</p>
+
+    <h3 class="sec">Frequently asked</h3>
     ${manFaq([
-      ["Do I need the internet?", "Yes. The app loads and saves through your account, so you need a connection to open it. If it drops while you are working, your changes stay on screen and are sent when it comes back."],
-      ["I closed the tab without waiting — is my work gone?", "Almost never. Changes are sent as soon as the tab is hidden or closed. If something could not be sent, the browser warns you before the page closes."],
-      ["I am on two devices — which one wins?", "Neither, automatically. Whichever saved last is the saved copy, and the other device is asked what to do instead of overwriting it. Pick the saved copy, or keep the screen you have."],
-      ["Can other students see my progress?", "No. Your progress belongs to your account and is loaded only when you are signed in."],
-      ["How do I bring in progress from the old version?", "Open the old file, press Save, and copy the code. Then in this app open Sync → Import or export a code, paste it and import. It replaces what is currently in your account."],
-      ["Why does renumbering a chapter not lose my progress?", "The number you see is only a label. Every chapter keeps a permanent internal number, so ticks and notes stay attached however you renumber it."],
-      ["What maths can I write in notes?", "Put it between dollar signs: <code>$\\frac{1}{2}mv^2$</code>. Fractions, roots, powers and subscripts, Greek letters, sums, integrals, limits, vectors and common symbols work. Multi-line aligned equations and matrices are not supported."],
-      ["My question count for a period looks low.", "Check whether Statistics is paused (the ◉ / ◎ button in the top bar). While paused, ticks are not counted."],
-      ["I see a red dot beside Sync.", "Saving is paused because a newer copy exists. Press Sync, then Resolve, and choose which copy to keep."]
+      ["Do I need the internet for any of this?", "No. The file works fully offline once it's downloaded — maths rendering, charts, and everything else run with nothing fetched from outside."],
+      ["I closed the tab without saving — is my work gone?", "Probably not. The app autosaves to this browser as you work, so reopening the same file in the same browser should pick up where you left off. Saving a code or file is still worth doing before switching devices or browsers."],
+      ["Can two people share one save code?", "Yes, in the sense that a code fully describes one state — pass it around like a save file. There's no live sync between two open copies, though; whichever code is loaded last wins."],
+      ["Why does renumbering a chapter not lose my progress?", "The number you see is a label. Underneath, every chapter keeps a permanent internal number that never changes, so your ticks and notes are keyed to something renumbering can't touch."],
+      ["What LaTeX can I use in notes?", "Fractions, roots, super/subscripts, Greek letters, sums, integrals, limits, vectors, and the common symbols and function names — enough for most JEE-level notes. Multi-line aligned equations and matrices aren't supported."],
+      ["My question count for a period looks lower than expected.", "Check whether Statistics is paused (the ◉/◎ button top right) — while paused, ticks aren't counted so you can catch up on old work without skewing your numbers."]
     ])}
     </div>`;
-  app.querySelectorAll("[data-jump]").forEach(b=>b.onclick = ()=>{
-    const el = document.getElementById(b.dataset.jump);
-    if(el) el.scrollIntoView({behavior:"smooth", block:"start"});
-  });
 }
 
 /* ============================================================
@@ -5594,7 +5708,7 @@ function drawMergeStep2(){
         return `<div class="opt" style="align-items:center;cursor:default;flex-wrap:wrap">
           <span data-mergeex="${esc(mapKey)}" role="checkbox" tabindex="0" style="display:flex;align-items:center;gap:9px;flex:1;cursor:pointer;${on?"":"opacity:.55"}">
             <span class="bx" style="border-color:${on?"var(--ok)":"var(--rule)"};background:${on?"var(--ok)":"transparent"};color:${on?"#04220f":"transparent"}">✓</span>
-            <span>${esc(e.name)} <span class="tagx">${qCount(sc,ch,e.code)}</span></span></span>
+            <span>${esc(e.name)} <span class="tagx">${qCount(sc,ch,e.code)} questions</span><span class="tagx" style="color:var(--ok);border-color:var(--ok)">${exDataCount(sc,ch.no,e.code)} with data</span></span></span>
           ${on && !isTarget ? `<select data-mergemap="${esc(mapKey)}" style="width:100%;margin-top:6px">
             <option value="__new__"${MERGE.mapTo[mapKey]==="__new__"?" selected":""}>Keep as its own exercise</option>
             ${targetExs.map(te=>`<option value="${esc(te.code)}"${MERGE.mapTo[mapKey]===te.code?" selected":""}>Combine into "${esc(te.name)}"</option>`).join("")}
@@ -5706,6 +5820,19 @@ function drawMergeStep2(){
 /* everything written about a single question lives under its key, so a move
    carries the lot: the note, the mistake record, the bookmarks and the
    collections that point at it */
+/* how many questions in an exercise carry anything at all: a tick, a result, a
+   review flag, stars, a note, a mistake record or a bookmark */
+function exDataCount(sc, no, code){
+  const base = key(sc, no, code);
+  const arr = S.d[base] || [];
+  const n = qCount(sc, chapOf(sc,no), code);
+  let hits = 0;
+  for(let i=0;i<n;i++){
+    const qk = base+"."+i;
+    if(arr[i] || S.n[qk] || S.r[qk] || (S.bm[qk] && S.bm[qk].length)) hits++;
+  }
+  return hits;
+}
 function moveQuestionRecords(oldKey, newKey){
   if(oldKey === newKey) return;
   if(S.n[oldKey]!==undefined){ S.n[newKey]=S.n[oldKey]; delete S.n[oldKey]; }
@@ -5758,6 +5885,29 @@ function purgeExercise(sc, no, code){
   } else {
     S.x.cnt[base] = 0;
   }
+}
+/* a chapter takes the number you give it; the chapter sitting on that number in
+   the same module, and every chapter after it, moves up one to make room */
+function setChapterNumber(sc, no, num){
+  num = Number(num);
+  const ch = chapOf(sc, no); if(!ch || !(num>0)) return 0;
+  const mid = ch.mod;
+  S.x.num["c:"+sc+":"+no] = num;
+  buildTree();
+  const mod = modOf(sc, mid);
+  const peers = (mod?mod.chapters:[]).filter(c=>Number(c.no)!==Number(no))
+    .sort((a,b)=>chLabel(a)-chLabel(b));
+  const taken = new Set([num]);
+  let moved = 0;
+  peers.forEach(c=>{
+    const was = Number(chLabel(c)) || 1;
+    let lab = was;
+    while(taken.has(lab)) lab++;
+    if(lab !== was){ S.x.num["c:"+sc+":"+c.no] = lab; moved++; }
+    taken.add(lab);
+  });
+  buildTree();
+  return moved;
 }
 /* the number you give a chapter is its alone: anything else sitting on it, and
    anything that would then collide in turn, is nudged up one */
@@ -6709,10 +6859,50 @@ function openFabMenu(){
 /* the ✎ on any button, so a folder can be renamed without opening it */
 document.addEventListener("click", e=>{
   const pen = e.target.closest("[data-ren]");
-  if(!pen) return;
-  e.preventDefault(); e.stopPropagation();
-  renameThing(pen.dataset.ren);
+  if(pen){ e.preventDefault(); e.stopPropagation(); renameThing(pen.dataset.ren); return; }
+  const hue = e.target.closest("[data-hue]");
+  if(hue){ e.preventDefault(); e.stopPropagation(); recolourThing(hue.dataset.hue); }
 });
+const COLOURS = ["#a78bfa","#4cc9f0","#ffa94d","#63e6be","#f783ac","#ffd43b","#9775fa","#4dabf7",
+                 "#ff922b","#69db7c","#e599f7","#ff8787","#38d9a9","#74c0fc","#faa2c1","#b2f2bb"];
+/* subjects and modules can be given a colour of their own; it is used for the
+   page accent, the bars and rails, and every chart that colours by subject */
+function recolourThing(k){
+  const p = k.split(":");
+  const isSub = p[0]==="s";
+  const thing = isSub ? subjOf(p[1]) : modOf(p[1], p[2]);
+  if(!thing) return;
+  const cur = colorOf(k) || (isSub ? thing.accent : (subjOf(p[1])||{}).accent);
+  onEsc = ()=>{};
+  const swatches = COLOURS.map(c=>`<button class="hueSw" data-pick="${c}" title="${c}"
+    style="background:${c};${c.toLowerCase()===String(cur).toLowerCase()?"box-shadow:0 0 0 2px var(--text)":""}"></button>`).join("");
+  openModal(`<h3>Colour of ${esc(isSub?thing.name:thing.name)}</h3>
+    <p>${isSub?"Used wherever this subject is drawn — cards, charts and the accent of its pages."
+              :"Used for this module's card and for its pages. It does not change the subject's own colour."}</p>
+    <div class="block"><div class="blabel">Pick one</div>
+      <div class="hwrow" style="flex-wrap:wrap;gap:8px">${swatches}</div></div>
+    <div class="block"><div class="blabel">Or choose your own</div>
+      <input type="color" id="hueOwn" value="${esc(cur||"#a78bfa")}" style="width:72px;height:36px;padding:2px;background:var(--ink);border:1px solid var(--rule);border-radius:8px"></div>
+    <div class="acts"><button class="btn" id="hueNo">Cancel</button>
+      ${colorOf(k)?`<button class="btn" id="hueReset">Back to default</button>`:""}
+      <button class="btn primary" id="hueYes">Use this colour</button></div>`);
+  let picked = cur;
+  const mark = ()=>modal.querySelectorAll("[data-pick]").forEach(b=>
+    b.style.boxShadow = b.dataset.pick.toLowerCase()===String(picked).toLowerCase() ? "0 0 0 2px var(--text)" : "");
+  modal.querySelectorAll("[data-pick]").forEach(b=>b.onclick = ()=>{
+    picked = b.dataset.pick; modal.querySelector("#hueOwn").value = picked; mark(); });
+  modal.querySelector("#hueOwn").oninput = e=>{ picked = e.target.value; mark(); };
+  modal.querySelector("#hueNo").onclick = closeModal;
+  const reset = modal.querySelector("#hueReset");
+  if(reset) reset.onclick = ()=>{
+    snapshot("colour"); delete S.x.colr[k];
+    buildTree(); markDirty(); closeModal(); render(); toastUndo("Colour reset");
+  };
+  modal.querySelector("#hueYes").onclick = ()=>{
+    snapshot("colour"); S.x.colr[k] = picked;
+    buildTree(); markDirty(); closeModal(); render(); toastUndo("Colour changed");
+  };
+}
 
 function currentName(k){
   const p = k.split(":");
@@ -6798,7 +6988,7 @@ async function editChapter(sc, no){
         <input type="text" id="cName" value="${esc(ch.name)}"></div>
       <div class="block"><div class="blabel">Number shown in ${esc(mod?mod.name:"this module")}</div>
         <input type="number" id="cNum" min="1" max="999" value="${chLabel(ch)}"></div>
-      <div class="hint" style="margin-top:-10px">Only what you see changes. Everything you have recorded stays with this chapter.</div>
+      <div class="hint" style="margin-top:-10px">Only what you see changes. Everything you have recorded stays with this chapter. If another chapter here already has that number, it and the ones after it move up one to make room.</div>
       <div class="msg bad" id="cMsg"></div>
       <div class="acts"><button class="btn" id="cNo">Cancel</button>
       <button class="btn primary" id="cYes">Save</button></div>`);
@@ -6808,16 +6998,16 @@ async function editChapter(sc, no){
       const msg = modal.querySelector("#cMsg");
       if(!name){ msg.textContent = "Give the chapter a name."; return; }
       if(!(num>0 && num<=999)){ msg.textContent = "The number has to be between 1 and 999."; return; }
-      const clash = (mod?mod.chapters:[]).find(c=>c.no!==ch.no && chLabel(c)===num);
-      if(clash){ msg.textContent = "Chapter "+num+" is already "+clash.name+" in this module."; return; }
       snapshot("edit chapter");
       if(name !== ch.name){
         let hit=null;
         Object.keys(S.x.chs).forEach(kk=>{ if(kk.split("|")[0]===sc) (S.x.chs[kk]||[]).forEach(c=>{ if(String(c.no)===String(no)) hit=c; }); });
         if(hit) hit.name = name; else S.x.ren["c:"+sc+":"+no] = name;
       }
-      S.x.num["c:"+sc+":"+no] = num;
-      buildTree(); markDirty(); closeModal(); render(); toastUndo("Chapter updated"); res(true);
+      const bumped = setChapterNumber(sc, no, num);
+      markDirty(); closeModal(); render();
+      toastUndo(bumped ? "Chapter renumbered — "+bumped+" moved up to make room" : "Chapter updated");
+      res(true);
     };
     modal.querySelector("#cNo").onclick = ()=>{ closeModal(); res(false); };
     modal.querySelector("#cYes").onclick = done;
