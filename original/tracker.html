@@ -71,7 +71,28 @@ input,select,textarea{font:inherit;color:inherit}
 .hueSw{width:30px;height:30px;border-radius:8px;border:1px solid var(--rule)}
 .srch{width:150px;max-width:34vw;background:var(--ink);border:1px solid var(--rule);border-radius:99px;
   padding:6px 12px;font-size:13px;color:var(--text);font-family:inherit}
-.srch:focus{outline:none;border-color:var(--accent);width:230px}
+.tbrow{position:relative}  /* anchor point for the dropdown */
+
+.srchToggle{display:none}
+@media (max-width:720px){
+  .srch{display:none}
+  .srchToggle{display:grid;place-items:center;padding:6px 10px;font-size:15px}
+  .srch.open{
+    display:block;
+    position:absolute;
+    top:100%;
+    left:12px;
+    right:12px;
+    margin-top:8px;
+    width:auto;max-width:none;
+    background:var(--ink-2);
+    border:1px solid var(--rule);
+    border-radius:10px;
+    padding:8px 12px;
+    z-index:80;
+    box-shadow:0 12px 40px rgba(0,0,0,.5);
+  }
+}
 .srchpanel{position:fixed;top:54px;left:12px;width:min(460px,94vw);max-height:64vh;overflow:auto;z-index:70;
   background:var(--ink-2);border:1px solid var(--rule);border-radius:12px;padding:6px;box-shadow:0 14px 40px rgba(0,0,0,.5)}
 .srchpanel a{display:flex;gap:9px;align-items:center;padding:8px 10px;border-radius:8px;font-size:13.5px;color:var(--text)}
@@ -439,6 +460,7 @@ math[display="block"]{display:block;margin:8px 0}
 
 <div class="topbar">
   <div class="tbrow">
+    <button class="tool srchToggle" id="srchToggle" title="Search" aria-label="Search">🔍</button>
     <input class="srch" id="srchIn" type="search" placeholder="Search…" aria-label="Search everything" autocomplete="off">
     <nav class="crumbs" id="crumbs"></nav>
     <button class="tool" id="themeBtn" title="Change the colour theme">🎨</button>
@@ -7772,13 +7794,18 @@ function paintSearch(){
 function closeSearch(){
   const panel = document.getElementById("srchOut");
   panel.hidden = true; panel.innerHTML = "";
+  document.getElementById("srchIn").classList.remove("open");
 }
 (function wireSearch(){
   const box = document.getElementById("srchIn"), panel = document.getElementById("srchOut");
   box.addEventListener("input", paintSearch);
   box.addEventListener("focus", paintSearch);
+  document.getElementById("srchToggle").addEventListener("click", ()=>{
+    box.classList.toggle("open");
+    if(box.classList.contains("open")) box.focus(); else { box.blur(); closeSearch(); }
+  });
   box.addEventListener("keydown", e=>{
-    if(e.key==="Escape"){ box.value=""; closeSearch(); box.blur(); return; }
+    if(e.key==="Escape"){ box.value=""; closeSearch(); box.classList.remove("open"); box.blur(); return; }
     const links = [...panel.querySelectorAll("a")];
     if(!links.length) return;
     const at = links.findIndex(a=>a.classList.contains("on"));
@@ -7797,7 +7824,7 @@ function closeSearch(){
     }
   });
   document.addEventListener("click", e=>{
-    if(!e.target.closest("#srchOut") && !e.target.closest("#srchIn")) closeSearch();
+    if(!e.target.closest("#srchOut") && !e.target.closest("#srchIn") && !e.target.closest("#srchToggle")) closeSearch();
   });
 })();
 
