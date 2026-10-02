@@ -13,8 +13,8 @@
     "test": "node tests/smoke.mjs"
   },
   "dependencies": {
-    "@clerk/nextjs": "latest",
-    "@clerk/ui": "latest",
+    "@clerk/nextjs": "^7.9.4",
+    "@clerk/ui": "^1.33.1",
     "@neondatabase/serverless": "^1",
     "next": "^15",
     "react": "^19",

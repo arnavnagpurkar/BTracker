@@ -1,15 +1,15 @@
 import { auth } from "@clerk/nextjs/server";
-import { neon } from "@neondatabase/serverless";
+import { db } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
 
-const sql = neon(process.env.DATABASE_URL!);
 const MAX_CODE = 2_000_000; // characters; real saves are far smaller
 const MIN_GAP_MS = 2000; // best-effort per-user write throttle
 const lastWrite = new Map<string, number>();
 
 let ready: Promise<void> | null = null;
 function init() {
+  const sql = db();
   if (!ready) {
     ready = (async () => {
       await sql`create table if not exists states (
@@ -32,6 +32,7 @@ export async function GET() {
   const { userId } = await auth();
   if (!userId) return new Response("Unauthorized", { status: 401 });
   await init();
+  const sql = db();
   const rows = await sql`select code, version from states where user_id = ${userId}`;
   if (!rows.length) return Response.json({ code: null, version: 0 }, { headers: noStore });
   return Response.json({ code: rows[0].code, version: rows[0].version }, { headers: noStore });
@@ -54,6 +55,7 @@ export async function PUT(req: Request) {
   lastWrite.set(userId, now);
 
   await init();
+  const sql = db();
 
   // Optimistic concurrency: only write if the client's copy is the one the server holds.
   const rows =

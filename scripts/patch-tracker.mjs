@@ -30,6 +30,16 @@ function edit(label, find, replace, expected = 1) {
   html = html.split(find).join(replace);
 }
 
+// Like edit(), but changes only the first match; for markup that also appears later in the file.
+function editFirst(label, find, replace) {
+  const i = html.indexOf(find);
+  if (i < 0) {
+    console.error(`\n✖ Patch step "${label}": expected a match, found none.\n  Looking for: ${find.slice(0, 90)}\n`);
+    process.exit(1);
+  }
+  html = html.slice(0, i) + replace + html.slice(i + find.length);
+}
+
 // 1. cloud helper, defined before anything calls markDirty()
 edit("cloud helper", "let saveTimer=null, lastAuto=null;", snip("cloud.js") + "\nlet saveTimer=null, lastAuto=null;");
 
@@ -69,7 +79,9 @@ edit("save dialog", "</script>\n</body>",
 // 7. look and feel
 edit("css", "@media (prefers-reduced-motion:reduce){*{transition:none!important}}",
   "@media (prefers-reduced-motion:reduce){*{transition:none!important}}" + snip("theme.css"));
-edit("font", '<meta charset="utf-8">',
+// Only the page's own <head>: newer trackers embed a second full HTML document (the
+// Asymptote viewer, inside a <script type="text/x-asymptote">) with its own charset tag.
+editFirst("font", '<meta charset="utf-8">',
   '<meta charset="utf-8">\n<link rel="preconnect" href="https://fonts.googleapis.com">\n<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">');
   
 fs.mkdirSync(path.join(root, "lib"), { recursive: true });

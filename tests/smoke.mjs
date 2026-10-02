@@ -47,7 +47,7 @@ ok(JSON.stringify(back.d["P1A"])===JSON.stringify([1,1,3]), "ticks survive save 
 // D: full-state round trip with data in every saved field
 r.x.S.notes.push({id:"n1",t:"$x^2$",c:[],at:1}); r.x.S.bm["P1A.0"]=["k1"]; r.x.S.col.push({id:"k1",n:"C"});
 r.x.S.h.push({id:"h1",kind:"task",title:"T",done:false}); r.x.S.log.push([100,30,"P"]); r.x.S.stat["2026-01-01"]={P:3};
-r.x.S.x.refAdded={hcv:7}; r.x.S.x.seenUpdate2=1; r.x.S.theme="light"; r.x.S.goals.day.q=77;
+r.x.S.x.refAdded={hcv:7}; r.x.S.x.seenUpdate2=1; r.x.S.theme="light"; if(r.x.S.look) r.x.S.look.pal="light"; r.x.S.goals.day.q=77;
 const code2 = r.x.makeCode(); const b2 = r.x.readCode(code2);
 ok(b2.notes.length===1 && b2.bm["P1A.0"][0]==="k1" && b2.col.length===1 && b2.h.length===1 && b2.log.length===1 &&
    b2.stat["2026-01-01"].P===3 && b2.x.refAdded.hcv===7 && b2.x.seenUpdate2===1 && b2.theme==="light" && b2.goals.day.q===77,
