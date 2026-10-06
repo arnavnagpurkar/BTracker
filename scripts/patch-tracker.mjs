@@ -57,8 +57,11 @@ edit("notice check", 'if(LS.get("qlog.update2Seen")) return;', "if(S.x.seenUpdat
 edit("notice flag", 'LS.set("qlog.update2Seen", "1");', "S.x.seenUpdate2 = 1; markDirty();");
 
 // 4. warn only if there is something not yet in the cloud
-edit("beforeunload", 'if(S.dirty && !LS.ok){ e.preventDefault(); e.returnValue=""; }',
-  'if(CLOUD.pending || CLOUD.busy){ e.preventDefault(); e.returnValue=""; }');
+//    (S.dirty is never cleared in the cloud build, so it can't decide this)
+edit("leave check", 'if(S.dirty) return "unsaved";', 'if(CLOUD.pending || CLOUD.busy) return "unsaved";');
+edit("leave text",
+  `unsaved: storageWorks() ? "Your latest changes haven't been saved as a code or file yet. They're kept in this browser for now, but save a copy before you close the app."\n                   : "This browser isn't letting the app store anything, so your changes exist only on this page. Save them as a code or file before you close it."`,
+  `unsaved: "Your latest changes haven't reached your account yet. Keep this page open for a moment, or press Sync now."`);
 
 // 5. top bar: "Sync" button plus an empty slot where the Clerk profile picture is drawn
 edit("sync button + profile slot",
