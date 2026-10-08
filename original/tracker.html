@@ -5673,7 +5673,7 @@ function bumpStat(sc, delta, loc, dayK){
    ============================================================ */
 const UNDO = [];
 const REDO = [];
-const SNAP_FIELDS = ["d","n","r","x","h","hd","log","stat","marks","dl","goals","col","bm","notes","an","rev","theme","fs","todo","qloc"];
+const SNAP_FIELDS = ["d","n","r","x","h","hd","log","stat","marks","dl","goals","col","bm","notes","an","rev","theme","fs","todo","qloc","lseg"];
 function stateSnap(label){
   const o = {label};
   SNAP_FIELDS.forEach(f=>o[f] = JSON.stringify(S[f]));
@@ -5989,7 +5989,7 @@ function prettyDue(d){
    ============================================================ */
 const A64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+,-.";
 function fingerprint(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h+str.charCodeAt(i))>>>0; return h.toString(36); }
-function metaObject(){ return {x:S.x, h:S.h, hd:S.hd, r:S.r, log:S.log, stat:S.stat, marks:S.marks, pom:S.pom, dl:S.dl, norec:S.norec, hwSort:S.hwSort, goals:S.goals, col:S.col, bm:S.bm, notes:S.notes, an:S.an, rev:S.rev, theme:S.theme, fs:S.fs, todo:S.todo, qloc:S.qloc, look:S.look, ig:S.ig, asy:plannerState()}; }
+function metaObject(){ return {x:S.x, h:S.h, hd:S.hd, r:S.r, log:S.log, stat:S.stat, marks:S.marks, pom:S.pom, dl:S.dl, norec:S.norec, hwSort:S.hwSort, goals:S.goals, col:S.col, bm:S.bm, notes:S.notes, an:S.an, rev:S.rev, theme:S.theme, fs:S.fs, todo:S.todo, qloc:S.qloc, lseg:S.lseg, look:S.look, ig:S.ig, asy:plannerState()}; }
 function makeCode(){
   const segs=[];
   Object.keys(S.d).sort().forEach(k=>{
@@ -6063,6 +6063,7 @@ function readCode(raw){
       if(meta.look && typeof meta.look==="object") out.look = meta.look;
       if(meta.todo && Array.isArray(meta.todo.items)) out.todo = meta.todo;
       if(meta.qloc && meta.qloc.days) out.qloc = meta.qloc;
+      if(meta.lseg && typeof meta.lseg==="object") out.lseg = meta.lseg;
       if(meta.ig && typeof meta.ig==="object") out.ig = meta.ig;
       if(meta.asy && typeof meta.asy==="object") out.asy = meta.asy;
       if(Array.isArray(meta.col)) out.col = meta.col;
@@ -6092,6 +6093,7 @@ function adoptCode(p){
   else S.ig = Object.assign(igDefault(), S.ig, {revMigrated:false});   /* its old revision list still comes across */
   S.todo = p.todo || (boot ? newTodo() : (S.todo || newTodo()));
   S.qloc = p.qloc || S.qloc || {from:todayKey(), days:{}};
+  S.lseg = p.lseg || S.lseg || {};
   S.asy = p.asy || null;
   if(ASYAPI && S.asy){ JOIN_NEXT = true; try{ ASYAPI.importState(S.asy, true, false); } finally{ JOIN_NEXT = false; } S.asy = null; }
   if(ASYAPI) setTimeout(afterCodeLoaded, 0);
@@ -6491,8 +6493,8 @@ function viewExercise(sc,m,ch,code){
       else if(what==="correct"){ v = setResult(setDone(v,1),1); delete S.r[qk]; }
       else if(what==="wrong"){
         v = setResult(setDone(v,1),2);
-        /* a bulk range cannot ask why each one was wrong, so it starts as Other */
-        if(!S.r[qk]) S.r[qk] = {d:todayKey(), t:["oth"]};
+        /* a bulk range cannot ask why each one was wrong, so it starts with no tag */
+        if(!S.r[qk]) S.r[qk] = {d:todayKey(), t:[]};
       }
       else if(what==="cant"){ v = setResult(setDone(v,0),3); delete S.r[qk]; }
       else if(what==="flag") v = setFlag(v,1);
@@ -7418,7 +7420,7 @@ function elapsedSec(){
 }
 function beginPhase(seconds){
   TIMER.total = seconds; TIMER.acc = 0; TIMER.since = null;
-  TIMER.up = 0; TIMER.nudged = 0; TIMER.left = seconds; TIMER.phaseStart = null;
+  TIMER.up = 0; TIMER.nudged = 0; TIMER.left = seconds; TIMER.phaseStart = null; TIMER.segs = [];
 }
 function fmtClock(s){
   s = Math.max(0, Math.round(s));
@@ -7463,12 +7465,25 @@ function chime(){
     });
   }catch(e){}
 }
-function logSession(actId, minutes, dlId, whenMin, speedrun){
+/* the stretches of real work inside one timed session, so pauses show in the planner */
+function closeSeg(){ const g = TIMER.segs && TIMER.segs[TIMER.segs.length-1]; if(g && g[1]==null) g[1] = Date.now(); }
+function takeSegs(){
+  closeSeg();
+  const raw = (TIMER.segs||[]).filter(g=>g[1]!=null && g[1]>g[0]); TIMER.segs = [];
+  const out = [];
+  raw.forEach(g=>{ const s = Math.round(g[0]/60000), e = Math.round(g[1]/60000), last = out[out.length-1];
+    if(last && s - (last[0]+last[1]) < 1) last[1] = Math.max(last[1], e - last[0]);   /* pauses under a minute don't split it */
+    else if(e > s) out.push([s, e-s]); });
+  return out.length > 1 ? out : null;
+}
+function logSession(actId, minutes, dlId, whenMin, speedrun, segs){
   if(!actId || minutes < 1) return;
   const row = [whenMin!==undefined?whenMin:Math.floor(Date.now()/60000) - minutes, minutes, actId];
   if(dlId || speedrun) row.push(dlId||null);
   if(speedrun) row.push(1);
-  S.log.push(row); markDirty();
+  S.log.push(row);
+  if(segs && segs.length > 1){ segs[0][0] = row[0]; (S.lseg = S.lseg || {})[row[0]+"|"+actId] = segs; }
+  markDirty();
 }
 /* recompute from the clock; safe to call as often as we like */
 function syncTimer(){
@@ -7492,13 +7507,13 @@ function phaseEnd(){
   const wasFocus = TIMER.mode==="focus";
   const started = TIMER.phaseStart;
   if(wasFocus) logSession(TIMER.act, Math.round(TIMER.total/60), TIMER.dl,
-                          started ? Math.floor(started/60000) : undefined);
+                          started ? Math.floor(started/60000) : undefined, undefined, takeSegs());
   const ch = S.pom.chime;
   if(ch==="both" || (wasFocus&&ch==="focus") || (!wasFocus&&ch==="break")) chime();
   TIMER.mode = wasFocus ? "brk" : "focus";
   beginPhase((TIMER.mode==="focus" ? S.pom.focus : S.pom.brk)*60);
   const carryOn = wasFocus ? S.pom.autoBrk : S.pom.autoFocus;
-  if(carryOn){ TIMER.since = Date.now(); TIMER.phaseStart = Date.now(); }
+  if(carryOn){ TIMER.since = Date.now(); TIMER.phaseStart = Date.now(); TIMER.segs = [[Date.now(), null]]; }
   else { TIMER.running = false; clearInterval(TIMER.tick); TIMER.tick = null; }
   if(VIEW.name==="study") viewStudy();
   paintTabs();
@@ -7518,6 +7533,7 @@ function startTimer(){
   if(TIMER.running) return;
   TIMER.running = true;
   TIMER.since = Date.now();
+  (TIMER.segs = TIMER.segs || []).push([Date.now(), null]);
   if(!TIMER.phaseStart) TIMER.phaseStart = Date.now() - TIMER.acc*1000;
   try{ (audioCtx = audioCtx || new (window.AudioContext||window.webkitAudioContext)()).resume(); }catch(e){}
   clearInterval(TIMER.tick);
@@ -7525,7 +7541,7 @@ function startTimer(){
   viewStudy(); paintTabs();
 }
 function pauseTimer(){
-  TIMER.acc = elapsedSec(); TIMER.since = null;
+  TIMER.acc = elapsedSec(); TIMER.since = null; closeSeg();
   TIMER.running = false; clearInterval(TIMER.tick); TIMER.tick = null;
   viewStudy(); paintTabs();
 }
@@ -7537,7 +7553,7 @@ function stopTimer(){
   TIMER.running = false; TIMER.since = null;
   clearInterval(TIMER.tick); TIMER.tick = null;
   if(wasFocus && spent>=1){
-    logSession(TIMER.act, spent, TIMER.dl, started ? Math.floor(started/60000) : undefined);
+    logSession(TIMER.act, spent, TIMER.dl, started ? Math.floor(started/60000) : undefined, undefined, takeSegs());
     toast("Logged "+spent+" min");
   }
   TIMER.mode = "focus";
@@ -13381,6 +13397,7 @@ function igDefault(){ return {joined:"", plFrom:"", revMigrated:false, filesMigr
 if(!S.ig) S.ig = igDefault();
 if(!S.todo) S.todo = newTodo();
 if(!S.qloc) S.qloc = {from:todayKey(), days:{}};
+if(!S.lseg) S.lseg = {};
 if(!S.fs) S.fs = newFs();
 if(!S.look) S.look = lookDefault();
 if(S.asy === undefined) S.asy = null;
@@ -13592,7 +13609,14 @@ function plannerSessions(){
     const subj = actTarget(l[2]); if(subj==="none") return;
     let k = "L"+l[0]+"_"+String(l[2]).replace(/[^a-z0-9]/gi,"");
     seen[k] = (seen[k]||0)+1; if(seen[k]>1) k += "_"+seen[k];
-    out.push({k, date, s:d.getHours()*60+d.getMinutes(), m:Math.round(l[1]), subj, type:actType(l[2]), label:activityName(l[2])});
+    const base = {date, subj, type:actType(l[2]), label:activityName(l[2])}, sg = S.lseg && S.lseg[l[0]+"|"+l[2]];
+    if(Array.isArray(sg) && sg.length > 1 && sg[0][0]===l[0]){
+      /* a paused session: one piece per stretch of work, with the gaps left empty */
+      sg.forEach((g,i)=>{ const gd = new Date(g[0]*60000); if(!(g[1] > 0)) return;
+        out.push(Object.assign({k:k+"_p"+i, date:dayKey(gd), s:gd.getHours()*60+gd.getMinutes(), m:Math.round(g[1])}, base)); });
+      return;
+    }
+    out.push(Object.assign({k, s:d.getHours()*60+d.getMinutes(), m:Math.round(l[1])}, base));
   });
   return out;
 }
