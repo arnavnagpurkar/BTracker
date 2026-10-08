@@ -833,6 +833,41 @@ button.td-car:hover{color:var(--text);background:var(--ink-3)}
 @keyframes fl3{0%{transform:rotate(-45deg) scale(.9)}100%{transform:rotate(-52deg) scale(1.15)}}
 @keyframes spark{0%{opacity:0;transform:translate(0,0) scale(1)}15%{opacity:1}100%{opacity:0;transform:translate(var(--sx,2px),-22px) scale(.4)}}
 .flame .s1{--sx:-3px} .flame .s3{--sx:4px}
+
+/* full notes */
+.row .c-note textarea.note{display:block;resize:none;overflow:hidden;min-height:28px;line-height:1.45;white-space:pre-wrap;word-break:break-word;font-family:inherit}
+.row .c-note .note-math{font-size:13.5px;color:var(--text);margin:4px 2px 2px;line-height:1.5;word-break:break-word}
+
+/* where you solved questions */
+.wh-sub{margin-bottom:12px}
+.wh-h{display:flex;align-items:center;gap:8px;font-weight:600;font-size:13.5px;margin:4px 0 6px}
+.wh-h i{width:9px;height:9px;border-radius:99px;display:inline-block}
+.wh-h b{margin-left:auto;font-family:var(--mono);color:var(--text-2)}
+.wh-row{display:grid;grid-template-columns:minmax(0,1.2fr) minmax(60px,1fr) 44px;align-items:center;gap:12px;padding:7px 10px;border-radius:9px;border:1px solid transparent}
+.wh-row:hover{background:var(--ink-3);border-color:var(--rule)}
+.wh-loc{display:flex;flex-direction:column;min-width:0}
+.wh-loc b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wh-loc span{font-size:12px;color:var(--text-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.wh-bar{height:6px;border-radius:99px;background:var(--ink-3);overflow:hidden}
+.wh-bar i{display:block;height:100%;border-radius:99px;box-shadow:0 0 8px currentColor}
+.wh-n{text-align:right;font-family:var(--mono)}
+/* the session's question picker */
+.lq-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
+.lq-pick select{width:100%;min-width:0}
+.lq-modes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
+.lq-grid{display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow:auto;padding:4px 2px}
+.lq-q{min-width:38px}
+.lq-q.pend{outline:2px solid var(--accent);outline-offset:1px;box-shadow:0 0 10px var(--glow-soft,transparent)}
+.lq-q.x{background:color-mix(in srgb,var(--cant) 22%,transparent);border-color:var(--cant)}
+.lq-sum{margin-top:10px}
+.lq-line{display:flex;align-items:center;gap:10px;padding:6px 10px;border:1px solid var(--rule-soft);border-radius:8px;margin-top:6px;font-size:13px}
+.lq-line span{color:var(--text-2);flex:1}
+@media (max-width:700px){ .lq-pick{grid-template-columns:1fr 1fr} }
+
+.lq-when{display:grid;grid-template-columns:auto minmax(0,170px) auto minmax(0,130px) auto 90px;gap:10px;align-items:center;justify-content:start;margin-bottom:18px}
+.lq-when .tin,.lq-when .numin{width:100%}
+#lActs,#lDls{justify-content:flex-start;flex-wrap:wrap}
+@media (max-width:640px){ .lq-when{grid-template-columns:auto 1fr} }
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -3545,6 +3580,7 @@ const newLog = () => ({ done:false, prod:null, topics:[], subs:[] });
 
 /* ---------- whole block (day only): details, cutting into parts, and its session when not split ---------- */
 function openDayBlock(date, id, draft, logDraft){
+  const fromAct = DB_FROM_ACTUAL;
   if (!draft && id.includes('~')) return openPartBlock(date, id);
   const eff = draft || dayBlocks(date, false).find(b => b.id === id); if (!eff) return;
   const b = clone(eff), isExtra = !!b._extra, isNewExtra = !!b._new;
@@ -3558,7 +3594,7 @@ function openDayBlock(date, id, draft, logDraft){
   const subjSel = bSubjs(b).find(s => SUBJ[s]) || 'phy';
   const partsSec = `<div id="partsSec" class="parts-sec"><div class="row"><div class="fld-l" style="margin:0">Studied more than one thing? Cut this block into separate blocks, each logged and ticked on its own.</div><span class="grow"></span>
       <div class="row cutrow" id="segOn"><span class="dim" style="font-size:13px">Cut into</span>${[2,3,4,5].map(n => `<button type="button" class="btn sm" data-cut="${n}">${n}</button>`).join('')}<span class="dim" style="font-size:13px">blocks</span></div></div><div id="segWrap"></div></div>`;
-  const foot = `${isExtra ? (isNewExtra ? '' : '<button class="btn danger" id="dbDel">Delete</button>') : '<button class="btn danger" id="dbSkip">Skip today</button>'}${b._ov ? '<button class="btn" id="dbReset">Reset to routine</button>' : ''}
+  const foot = `${fromAct && !b.actual ? '<button class="btn danger" id="dbUnlog" title="Clear what you logged for this block; it stays in your plan">Remove from what you did</button>' : isExtra ? (isNewExtra ? '' : '<button class="btn danger" id="dbDel">Delete</button>') : '<button class="btn danger" id="dbSkip">Skip today</button>'}${b._ov && !fromAct ? '<button class="btn" id="dbReset">Reset to routine</button>' : ''}
     <span class="grow"></span><button class="btn ghost" data-close>Cancel</button><button class="btn pri" id="dbSave">${isNewExtra ? 'Add block' : 'Save for this day'}</button>`;
   modal(`${fmtD(date, { weekday:'short', day:'numeric', month:'short' })} · ${b.actual ? (isNewExtra ? 'Log what you did' : 'What you did') : (isNewExtra ? 'New block' : 'Block')}`, blockFormHTML(b) + `<p class="dim" style="font-size:12.5px;margin:0">${b.actual ? 'A record of what you did: it shows in the Actual column only, and your plan is left as it was.' : isExtra ? 'This block exists on this day only.' : 'Changes apply to this day only. Your routine stays the same.'}</p>` + partsSec + `<div id="sessSec">${sessHTML(lg, b, subjSel)}</div>`, foot, r => {
     mountBlockForm(r);
@@ -3661,6 +3697,7 @@ function openDayBlock(date, id, draft, logDraft){
     };
     const sk = q('#dbSkip'); if (sk) sk.onclick = () => { (S.plan.ov[date] ||= {})[id] = { skip:true }; touch('plan'); closeModal(true); render(); toast('Skipped for today'); };
     const rs = q('#dbReset'); if (rs) rs.onclick = () => { if (S.plan.ov[date]) delete S.plan.ov[date][id]; touch('plan'); closeModal(true); render(); toast('Back to the routine version'); };
+    const ul = q('#dbUnlog'); if (ul) ul.onclick = () => unlogBlock(date, id);
     const dl = q('#dbDel'); if (dl) dl.onclick = () => { S.plan.extra[date] = (S.plan.extra[date]||[]).filter(x => x.id !== id); const L2 = S.plan.log[date] || {}; Object.keys(L2).forEach(k => { if (k === id || k.startsWith(id + '~')) delete L2[k]; }); touch('plan'); closeModal(true); render(); };
   }, 'wide');
 }
@@ -3698,6 +3735,21 @@ function partSource(date, pid, sid){
   const arr = (S.plan.dplan[date] || {})[pid];
   return arr ? { arr, i: arr.findIndex(x => String(x.id) === sid) } : { arr:null, i:-1 };
 }
+
+/* ---------- removing something from "What you did" only ----------
+   Opened from the Actual column, a block's dialog clears what you logged for
+   it and leaves the plan alone. A study-log session removed this way stays
+   removed from the planner until you change that session in the Study log. */
+let DB_FROM_ACTUAL = false;
+function unlogBlock(date, id){
+  const L = S.plan.log[date] || {}, lg = L[id];
+  const rec = S.plan.btSync || {};
+  Object.keys((lg && lg.bt) || {}).forEach(k => { const r = rec[k]; if (!r) return; r.alloc = {}; r.extra = null; r.dropped = true; delete r.pin; });
+  delete L[id];
+  if (!id.includes('~')) Object.keys(L).forEach(k => { if (k.startsWith(id + '~')) { const pl = L[k]; if (pl && pl.btPart) delete L[k]; else if (pl) { delete pl.done; delete pl.studied; delete pl.prod; delete pl.astart; } } });
+  if (!Object.keys(L).length) delete S.plan.log[date];
+  touch('plan'); closeModal(true); render(); toast('Removed from what you did — still in your plan');
+}
 function openPartBlock(date, cid){
   const b = dayBlocks(date).find(x => x.id === cid); if (!b) return;
   const pid = b._parent, sid = b._sid, parent = dayBlocks(date, false).find(x => x.id === pid);
@@ -3708,9 +3760,10 @@ function openPartBlock(date, cid){
   const subjSel = bSubjs(b).find(s => SUBJ[s]) || 'phy';
   const head = `<div class="part-crumb"><span class="mode-tag plan">Block ${b._seg + 1} of ${b._nseg}</span><span class="mute">from ${esc(typeNames(parent || b))} · ${b.start}–${hm(bEnd(b))}</span><span class="grow"></span><button type="button" class="btn sm ghost" id="pbWhole">Edit the whole block…</button></div>`;
   const form = editable ? `<div class="part-mode">${blockFormHTML(b)}</div>` : `<p class="mute" style="margin:0">This is the unplanned time left in the block. Plan it in the Daily plan to give it a type and subject.</p>`;
-  const foot = `${b._free ? '' : '<button class="btn danger" id="pbRemove">Remove this block</button>'}<span class="grow"></span><button class="btn ghost" data-close>Cancel</button><button class="btn pri" id="pbSave">Save</button>`;
+  const foot = `${DB_FROM_ACTUAL ? '<button class="btn danger" id="pbUnlog" title="Clear what you logged for this part; it stays in your plan">Remove from what you did</button>' : b._free ? '' : '<button class="btn danger" id="pbRemove">Remove this block</button>'}<span class="grow"></span><button class="btn ghost" data-close>Cancel</button><button class="btn pri" id="pbSave">Save</button>`;
   modal(`${fmtD(date, { weekday:'short', day:'numeric', month:'short' })} · ${esc(typeNames(b))}`, head + form + sessHTML(lg, b, subjSel), foot, r => {
     const q = s => r.querySelector(s);
+    const pu = q('#pbUnlog'); if (pu) pu.onclick = () => unlogBlock(date, cid);
     if (editable) { mountBlockForm(r); r.querySelector('[data-manage-in]').onclick = () => { closeModal(true); openManage(() => openPartBlock(date, cid)); }; }
     const sess = mountSession(r, { lg, planned: () => editable ? +q('#bfH').value * 60 + +q('#bfM').value : +b.dur, plannedSrc: () => 'this block’s length' });
     if (editable) ['#bfH','#bfM'].forEach(s => q(s).addEventListener('input', () => sess.paint()));
@@ -4134,7 +4187,10 @@ document.addEventListener('click', e => {
     const [k, id, date] = d.item.split('|');
     if (k === 'ev') return openEvent(S.plan.events.find(x => x.id === id), {}, date);
     if (k === 'rv') return openRevLog(id);
-    if (k === 'bl') return openDayBlock(date, id);
+    if (k === 'bl') {
+      DB_FROM_ACTUAL = !!t.closest('.tg-col.actual');
+      try { return openDayBlock(date, id); } finally { DB_FROM_ACTUAL = false; }
+    }
   }
   if (d.openday) { V.day = d.openday; return go('day'); }
   if (d.dayflag) { const arr = (S.plan.dayFlags[V.day] ||= []); const i = arr.indexOf(d.dayflag); if (i >= 0) arr.splice(i,1); else arr.push(d.dayflag); if (!arr.length) delete S.plan.dayFlags[V.day]; touch('plan'); return render(); }
@@ -5594,13 +5650,22 @@ const todayKey = () => dayKey(new Date());
 function dayKey(d){ return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0"); }
 
 /* solved-per-day counters, so Statistics can report a period */
-function bumpStat(sc, delta){
-  if(S.norec) return;          /* catching up on old work — do not skew the record */
-  const k = todayKey();
+function bumpStat(sc, delta, loc, dayK){
+  if(S.norec && !dayK) return;          /* catching up on old work — do not skew the record */
+  const k = dayK || todayKey();
   const day = S.stat[k] = S.stat[k] || {};
   day[sc] = Math.max(0, (day[sc]||0) + delta);
   if(!day[sc]) delete day[sc];
   if(!Object.keys(day).length) delete S.stat[k];
+  /* and where — subject › chapter › exercise — so Statistics can say where you worked */
+  if(!loc && ctx && ctx.sc===sc && ctx.ch) loc = ctx.ch.no+"|"+ctx.code;
+  if(loc){
+    const Q = S.qloc || (S.qloc = {from:k, days:{}});
+    const L = Q.days[k] = Q.days[k] || {}, lk = sc+"|"+loc;
+    L[lk] = Math.max(0, (L[lk]||0) + delta);
+    if(!L[lk]) delete L[lk];
+    if(!Object.keys(L).length) delete Q.days[k];
+  }
 }
 
 /* ============================================================
@@ -5608,7 +5673,7 @@ function bumpStat(sc, delta){
    ============================================================ */
 const UNDO = [];
 const REDO = [];
-const SNAP_FIELDS = ["d","n","r","x","h","hd","log","stat","marks","dl","goals","col","bm","notes","an","rev","theme","fs","todo"];
+const SNAP_FIELDS = ["d","n","r","x","h","hd","log","stat","marks","dl","goals","col","bm","notes","an","rev","theme","fs","todo","qloc"];
 function stateSnap(label){
   const o = {label};
   SNAP_FIELDS.forEach(f=>o[f] = JSON.stringify(S[f]));
@@ -5924,7 +5989,7 @@ function prettyDue(d){
    ============================================================ */
 const A64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz!#$%&()*+,-.";
 function fingerprint(str){ let h=5381; for(let i=0;i<str.length;i++) h=((h<<5)+h+str.charCodeAt(i))>>>0; return h.toString(36); }
-function metaObject(){ return {x:S.x, h:S.h, hd:S.hd, r:S.r, log:S.log, stat:S.stat, marks:S.marks, pom:S.pom, dl:S.dl, norec:S.norec, hwSort:S.hwSort, goals:S.goals, col:S.col, bm:S.bm, notes:S.notes, an:S.an, rev:S.rev, theme:S.theme, fs:S.fs, todo:S.todo, look:S.look, ig:S.ig, asy:plannerState()}; }
+function metaObject(){ return {x:S.x, h:S.h, hd:S.hd, r:S.r, log:S.log, stat:S.stat, marks:S.marks, pom:S.pom, dl:S.dl, norec:S.norec, hwSort:S.hwSort, goals:S.goals, col:S.col, bm:S.bm, notes:S.notes, an:S.an, rev:S.rev, theme:S.theme, fs:S.fs, todo:S.todo, qloc:S.qloc, look:S.look, ig:S.ig, asy:plannerState()}; }
 function makeCode(){
   const segs=[];
   Object.keys(S.d).sort().forEach(k=>{
@@ -5997,6 +6062,7 @@ function readCode(raw){
       if(meta.fs && Array.isArray(meta.fs.files) && Array.isArray(meta.fs.folders)) out.fs = meta.fs;
       if(meta.look && typeof meta.look==="object") out.look = meta.look;
       if(meta.todo && Array.isArray(meta.todo.items)) out.todo = meta.todo;
+      if(meta.qloc && meta.qloc.days) out.qloc = meta.qloc;
       if(meta.ig && typeof meta.ig==="object") out.ig = meta.ig;
       if(meta.asy && typeof meta.asy==="object") out.asy = meta.asy;
       if(Array.isArray(meta.col)) out.col = meta.col;
@@ -6025,6 +6091,7 @@ function adoptCode(p){
   else if(boot || !S.ig) S.ig = igDefault();
   else S.ig = Object.assign(igDefault(), S.ig, {revMigrated:false});   /* its old revision list still comes across */
   S.todo = p.todo || (boot ? newTodo() : (S.todo || newTodo()));
+  S.qloc = p.qloc || S.qloc || {from:todayKey(), days:{}};
   S.asy = p.asy || null;
   if(ASYAPI && S.asy){ JOIN_NEXT = true; try{ ASYAPI.importState(S.asy, true, false); } finally{ JOIN_NEXT = false; } S.asy = null; }
   if(ASYAPI) setTimeout(afterCodeLoaded, 0);
@@ -6353,6 +6420,7 @@ function viewExercise(sc,m,ch,code){
       <div class="field"><label for="fSort">Order</label><select id="fSort">
         <option value="num">Question number</option><option value="starDesc">Stars, high to low</option>
         <option value="starAsc">Stars, low to high</option></select></div>
+      <button class="tbtn ${S.look.wrapNotes?"on":""}" id="wrapNotes" title="Show every note in full, wrapped onto as many lines as it needs, with maths typeset">↵ Full notes</button>
       <span class="spacer"></span>
       <div class="bulk">
         <button class="tbtn warn" id="allDone">Mark all solved</button>
@@ -6498,7 +6566,9 @@ function rowHTML(i){
     <span class="c-bub bub">
       <button class="c ${r===1?"on":""}" data-act="res" data-v="1" aria-label="Correct">✓</button>
       <button class="w ${r===2?"on":""}" data-act="res" data-v="2" aria-label="Wrong">✕</button>${why}</span>
-    <span class="c-note"><input class="note" value="${esc(note)}" placeholder="Add a note" aria-label="Note for question ${i+1}"></span>
+    <span class="c-note">${S.look.wrapNotes
+      ? `<textarea class="note wrapnote" rows="1" placeholder="Add a note" aria-label="Note for question ${i+1}">${esc(note)}</textarea>${/\$/.test(note)?`<div class="note-math">${mathText(note)}</div>`:""}`
+      : `<input class="note" value="${esc(note)}" placeholder="Add a note" aria-label="Note for question ${i+1}">`}</span>
     <span class="c-flag marks">
       <button class="flag ${isFlag(v)?"on":""}" data-act="flag" aria-pressed="${!!isFlag(v)}">RETRY</button>
       <button class="cantb ${r===3?"on":""}" data-act="res" data-v="3" aria-pressed="${r===3}" title="Could not solve">STUCK</button></span>
@@ -6549,7 +6619,22 @@ document.addEventListener("input", e=>{
   const row = e.target.closest(".row"); if(!row) return;
   const k = key(ctx.sc,ctx.ch.no,ctx.code)+"."+row.dataset.i;
   if(e.target.value) S.n[k]=e.target.value; else delete S.n[k];
+  if(e.target.classList.contains("wrapnote")){
+    growNote(e.target);
+    const span = e.target.parentNode; let m = span.querySelector(".note-math");
+    if(/\$/.test(e.target.value)){ if(!m){ m = document.createElement("div"); m.className = "note-math"; span.appendChild(m); } m.innerHTML = mathText(e.target.value); }
+    else if(m) m.remove();
+  }
   markDirty();
+});
+/* full notes grow to fit what is written in them */
+function growNote(t){ t.style.height = "auto"; t.style.height = (t.scrollHeight + 2) + "px"; }
+new MutationObserver(()=>{ if(S.look && S.look.wrapNotes) app.querySelectorAll("textarea.wrapnote").forEach(t=>{ if(!t.dataset.grown){ t.dataset.grown = "1"; growNote(t); } }); })
+  .observe(document.getElementById("app"), {childList:true, subtree:true});
+document.addEventListener("click", e=>{
+  if(!e.target.closest || !e.target.closest("#wrapNotes")) return;
+  S.look.wrapNotes = !S.look.wrapNotes; markDirty(); render();
+  toast(S.look.wrapNotes ? "Showing notes in full" : "Notes back on one line");
 });
 
 /* what went wrong — multi-select, editable later, custom options stick */
@@ -7048,7 +7133,7 @@ function toggleFromChip(qk){
   const now = !isDone(arr[q.i]||0);
   arr[q.i] = setDone(arr[q.i]||0, now);
   if(!now){ arr[q.i] = setResult(arr[q.i],0); delete S.r[qk]; }
-  bumpStat(q.s, now?1:-1);
+  bumpStat(q.s, now?1:-1, q.c+"|"+q.e);
   markDirty(); sweepFinishedHomework(); viewHomework(); paintTabs();
 }
 
@@ -7189,8 +7274,8 @@ function openQuestionEditor(qk){
         if(w===2) S.r[qk] = S.r[qk]||{d:todayKey(), t:[]}; else delete S.r[qk];
       }
       arr[q.i]=v;
-      if(!was && isDone(v)) bumpStat(q.s,1);
-      if(was && !isDone(v)) bumpStat(q.s,-1);
+      if(!was && isDone(v)) bumpStat(q.s,1,q.c+"|"+q.e);
+      if(was && !isDone(v)) bumpStat(q.s,-1,q.c+"|"+q.e);
       markDirty(); draw();
     });
     modal.querySelectorAll("[data-star]").forEach(b=>b.onclick = ()=>{
@@ -7308,8 +7393,8 @@ function hwBarAction(act){
     if(act==="cant"){ v = setResult(setDone(v,0),3); delete S.r[qk]; }
     if(act==="flag") v = setFlag(v,1);
     arr[q.i]=v;
-    if(!was && isDone(v)) bumpStat(q.s,1);
-    if(was && !isDone(v)) bumpStat(q.s,-1);
+    if(!was && isDone(v)) bumpStat(q.s,1,q.c+"|"+q.e);
+    if(was && !isDone(v)) bumpStat(q.s,-1,q.c+"|"+q.e);
   });
   const n = hsel.size;
   hsel = new Set();
@@ -7471,8 +7556,9 @@ function paintClock(){
       arc.setAttribute("stroke-dashoffset", c*(1-frac));
     }
   }
-  const badge = document.querySelector('.tab[href^="#/study"] .badge');
-  if(badge) badge.textContent = fmtClock(TIMER.endless?TIMER.up:TIMER.left);
+  const badge = document.querySelector('.sn[data-sk="study"] .badge.run');
+  if(TIMER.running && !badge) paintSide();
+  else if(badge) badge.textContent = fmtClock(TIMER.endless?TIMER.up:TIMER.left);
 }
 function viewStudy(){
   crumbs([{label:"Home",href:"#/"},{label:"Study log"}]);
@@ -7492,6 +7578,7 @@ function viewStudy(){
       <button class="tbtn ${kind==="speed"?"on":""}" data-kind="speed">Speedrun</button>
     </div>
     <span class="spacer"></span>
+    <button class="tbtn" id="addLog2" title="Add a session you didn't time — and the questions you did in it">+ Add a session</button>
     <button class="tbtn" id="mgAct">Subjects &amp; activities</button>
     ${kind!=="speed"?`<button class="tbtn" id="tSet">⚙ Settings</button>`:""}
   </div>`;
@@ -7578,6 +7665,7 @@ function viewStudy(){
   const s3 = document.getElementById("tStop"); if(s3) s3.onclick = stopTimer;
   const s4 = document.getElementById("tSet"); if(s4) s4.onclick = openTimerSettings;
   const s5 = document.getElementById("mgAct"); if(s5) s5.onclick = openActivityManager;
+  const s6 = document.getElementById("addLog2"); if(s6) s6.onclick = addLogEntry;
 }
 function openTimerSettings(){
   const sw = (id,on)=>`<button class="sw ${on?"on":""}" id="${id}" role="switch" aria-checked="${!!on}"><i></i></button>`;
@@ -7890,6 +7978,7 @@ function viewStats(){
       time:{name:"Time studied, by subject", html:pie(timeData,150," min")},
       perday:{name:"Average minutes per day, by subject", html:bars(perDaySub," min")},
       qsolved:{name:"Questions solved, by subject", html:pie(qData,150,"")},
+      where:{name:"Where you solved questions", html:whereHTML(mFrom, to, subs)},
       wrong:{name:"What went wrong", html:pie(tagData,150,"")},
       heat:{name:"Study heatmap", html:heatmapHTML()},
       line:{name:"Study time over time", html:lineGraphHTML()},
@@ -8194,6 +8283,7 @@ function dayDetail(k){
       ${Object.keys(mins).sort((a,b)=>mins[b]-mins[a]).map(a=>bar(activityName(a), activityColor(a), mins[a], maxMin)).join("")}</div></div>`:""}
     ${Object.keys(rec).length?`<div class="block"><div class="blabel">Questions by subject</div><div class="opts">
       ${Object.keys(rec).sort((a,b)=>rec[b]-rec[a]).map(sc=>bar(subjOf(sc)?subjOf(sc).name:sc, activityColor(sc), rec[sc], maxQ)).join("")}</div></div>`:""}
+    ${S.qloc && S.qloc.days[k] ? `<div class="block"><div class="blabel">Where</div>${whereRowsHTML(S.qloc.days[k])}</div>` : ""}
     ${sessions.length?`<div class="block" style="max-height:240px;overflow:auto"><div class="blabel">Sessions</div>
       <div class="opts">${sessions.map(l=>{ const st=new Date(l[0]*60000), en=new Date((l[0]+l[1])*60000);
         const d = l[3] && S.dl.find(x=>x.id===l[3]);
@@ -8210,10 +8300,14 @@ function dayDetail(k){
 /* ============================================================
    25b. THE SECTIONS OF THE STATISTICS PAGE — which are shown, in what order
    ============================================================ */
-const STAT_SECTIONS = ["kpi","time","perday","qsolved","wrong","heat","line","spider","scatter","compare","chapters"];
+const STAT_SECTIONS = ["kpi","time","perday","qsolved","where","wrong","heat","line","spider","scatter","compare","chapters"];
 function statOrder(){
-  const saved = (S.x.secOrder||[]).filter(id=>STAT_SECTIONS.includes(id));
-  return saved.concat(STAT_SECTIONS.filter(id=>!saved.includes(id)));
+  const out = (S.x.secOrder||[]).filter(id=>STAT_SECTIONS.includes(id));
+  /* a section added since you last arranged them goes in its usual place, not at the end */
+  STAT_SECTIONS.forEach((id,i)=>{ if(out.includes(id)) return;
+    const prev = STAT_SECTIONS.slice(0,i).reverse().find(p=>out.includes(p));
+    out.splice(prev ? out.indexOf(prev)+1 : 0, 0, id); });
+  return out;
 }
 const secHidden = id => !!((S.x.secHide||{})[id]);
 function statSectionsHTML(SEC){
@@ -8264,7 +8358,7 @@ function openSectionManager(){
   draw();
 }
 const SECTION_NAMES = {kpi:"The numbers", time:"Time studied, by subject",
-  perday:"Average minutes per day, by subject", qsolved:"Questions solved, by subject",
+  perday:"Average minutes per day, by subject", qsolved:"Questions solved, by subject", where:"Where you solved questions",
   wrong:"What went wrong", heat:"Study heatmap", line:"Study time over time",
   spider:"Syllabus covered", scatter:"Completion against accuracy",
   compare:"Period comparison", chapters:"Chapter wise analysis"};
@@ -8491,6 +8585,39 @@ function wireStatSections(){
   });
 }
 
+
+/* ============================================================
+   25f. WHERE YOU SOLVED QUESTIONS — by chapter and exercise
+   ============================================================ */
+function qlocAgg(from, to, subs){
+  const days = (S.qloc && S.qloc.days) || {}, agg = {};
+  Object.keys(days).forEach(k=>{ if(!inRange(k, from, to)) return;
+    Object.entries(days[k]).forEach(([lk,n])=>{ const sc = lk.split("|")[0]; if(subs && !subs.has(sc)) return; agg[lk] = (agg[lk]||0) + n; }); });
+  return agg;
+}
+function whereRowsHTML(agg){
+  const max = Math.max(1, ...Object.values(agg)), bySub = {};
+  Object.entries(agg).forEach(([lk,n])=>{ const [sc,no,code] = lk.split("|"), ch = chapOf(sc,no); if(!ch || !subjOf(sc)) return;
+    (bySub[sc] = bySub[sc] || []).push({sc, ch, ex:exOf(sc,ch,code), code, n}); });
+  return Object.keys(bySub).sort((a,b)=>bySub[b].reduce((x,r)=>x+r.n,0)-bySub[a].reduce((x,r)=>x+r.n,0)).map(sc=>{
+    const rows = bySub[sc].sort((a,b)=>b.n-a.n), sub = subjOf(sc), tot = rows.reduce((x,r)=>x+r.n,0);
+    return `<div class="wh-sub"><div class="wh-h"><i style="background:${sub.accent}"></i>${esc(sub.name)}<b>${tot}</b></div>
+      ${rows.map(r=>{ const mo = sub.modules[r.ch.mod];
+        return `<a class="wh-row" href="#/${esc(sc)}/${esc(String(r.ch.mod))}/${esc(String(r.ch.no))}/${esc(r.code)}" title="Open this exercise">
+          <span class="wh-loc"><b>${esc(chTitle(r.ch))}</b><span>${esc(mo?mo.name:"")}${r.ex?" · "+esc(r.ex.name):""}</span></span>
+          <span class="wh-bar"><i style="width:${Math.round(r.n/max*100)}%;background:${sub.accent}"></i></span><b class="wh-n">${r.n}</b></a>`; }).join("")}</div>`;
+  }).join("");
+}
+function whereHTML(from, to, subs){
+  const agg = qlocAgg(from, to, subs), placed = Object.values(agg).reduce((a,b)=>a+b,0);
+  let all = 0;
+  Object.keys(S.stat).forEach(k=>{ if(!inRange(k, from, to)) return; Object.entries(S.stat[k]).forEach(([sc,n])=>{ if(!subs || subs.has(sc)) all += n; }); });
+  const unplaced = Math.max(0, all - placed), since = (S.qloc && S.qloc.from) || todayKey();
+  if(!placed) return `<div class="panel"><div class="empty">${all ? `The ${all} question${all>1?"s":""} solved in this period were counted before places were recorded. From ${esc(since)} on, every one shows here.` : "No questions solved in this period."}</div></div>`;
+  return `<div class="panel">${whereRowsHTML(agg)}
+    ${unplaced ? `<div class="hint">${unplaced} more were solved before places were recorded, which started on ${esc(since)}.</div>` : ""}
+    <div class="hint">Every question you mark solved is counted where you marked it — on its exercise page, in Homework, in a speedrun, or in a session you added. Click a row to open that exercise.</div></div>`;
+}
 /* ============================================================
    26. SYLLABUS RADAR — % completed (or % accuracy) per chapter
    ============================================================ */
@@ -8775,13 +8902,23 @@ function openActivityManager(){
   };
   draw();
 }
+let lqLast = null;
 function addLogEntry(){
   const now = new Date();
   const hhmm = now.toTimeString().slice(0,5);
   const live = S.dl.slice().sort((a,b)=>a.date<b.date?-1:1);
-  onEsc = ()=>viewStats();
-  openModal(`<h3>Add a study session</h3><p>For anything you did but forgot to time.</p>
-    <div class="hwrow" style="margin-bottom:18px">
+  const back = ()=>{ closeModal(); render(); };
+  onEsc = ()=>render();
+  const pending = new Map();        /* question → what you did with it in this session */
+  let mode = "correct";
+  const firstEx = ()=>{
+    for(const sc of TREE.order){ const sub = subjOf(sc);
+      for(const m of sub.order){ for(const ch of sub.modules[m].chapters){ const e = exList(sc,ch).find(x=>qCount(sc,ch,x.code)>0); if(e) return {sc, m, no:ch.no, code:e.code}; } } }
+    return null;
+  };
+  let pick = lqLast && chapOf(lqLast.sc, lqLast.no) ? Object.assign({}, lqLast) : firstEx();
+  openModal(`<h3>Add a study session</h3><p>For anything you did but forgot to time — and, if you like, the questions you did in it.</p>
+    <div class="lq-when">
       <span class="blabel" style="margin:0">Day</span><input class="tin" type="date" id="lDate" value="${todayKey()}">
       <span class="blabel" style="margin:0">Started</span><input class="tin" type="time" id="lTime" value="${hhmm}">
       <span class="blabel" style="margin:0">Minutes</span><input class="numin" type="number" id="lMin" min="1" max="1200" value="30">
@@ -8792,8 +8929,17 @@ function addLogEntry(){
     ${live.length?`<div class="block"><div class="blabel">Towards a deadline (optional)</div>
       <div class="acts" id="lDls">${live.map(d=>`<button class="actbtn" data-ldl="${esc(d.id)}">
         <i style="background:var(--flag)"></i>${esc(d.name)}</button>`).join("")}</div></div>`:""}
+    <div class="block lq">
+      <div class="blabel">Questions you did in this session (optional)</div>
+      <div class="hint" style="margin:0 0 10px">Choose an exercise, choose what to mark, then tap the questions. Switch exercise as often as you like — everything you mark is saved with the session and counted on its day in Statistics.</div>
+      ${pick ? `<div class="lq-pick"><select id="lqS" aria-label="Subject"></select><select id="lqM" aria-label="Module"></select><select id="lqC" aria-label="Chapter"></select><select id="lqE" aria-label="Exercise"></select></div>
+      <div class="lq-modes">${[["done","Solved"],["correct","✓ Correct"],["wrong","✗ Wrong"],["cant","Could not solve"],["clear","Clear"]].map(([v,l])=>`<button class="tbtn ${v===mode?"on":""}" data-lqmode="${v}">${l}</button>`).join("")}
+        <span class="spacer"></span><button class="tbtn" id="lqAll" title="Apply to every question in this exercise">All in this exercise</button></div>
+      <div class="lq-grid" id="lqGrid"></div><div class="lq-sum" id="lqSum"></div>` : `<div class="empty">No exercises to choose from yet.</div>`}
+    </div>
     <div class="msg bad" id="lMsg"></div>
     <div class="acts"><button class="btn" id="lNo">Cancel</button><button class="btn primary" id="lYes">Add session</button></div>`);
+  modal.classList.add("wide");
   let act = null, dl = null;
   modal.querySelectorAll("[data-lact]").forEach(b=>b.onclick = ()=>{
     act = b.dataset.lact;
@@ -8801,7 +8947,61 @@ function addLogEntry(){
   modal.querySelectorAll("[data-ldl]").forEach(b=>b.onclick = ()=>{
     const same = dl===b.dataset.ldl; dl = same?null:b.dataset.ldl;
     modal.querySelectorAll("[data-ldl]").forEach(x=>x.classList.toggle("on", !same && x===b)); });
-  modal.querySelector("#lNo").onclick = ()=>{ closeModal(); viewStats(); };
+  /* the picker */
+  const $ = id => modal.querySelector("#"+id);
+  const opt = (v,l,cur)=>`<option value="${esc(String(v))}"${String(v)===String(cur)?" selected":""}>${esc(l)}</option>`;
+  const state = v => { if(!isDone(v) && result(v)!==3) return ""; const r = result(v); return r===1?"c":r===2?"w":r===3?"x":"d"; };
+  const pendState = m => ({done:"d", correct:"c", wrong:"w", cant:"x", clear:""})[m];
+  const drawPick = ()=>{
+    if(!pick) return;
+    const sub = subjOf(pick.sc);
+    const mods = sub.order.filter(m=>sub.modules[m].chapters.length);
+    if(!mods.map(String).includes(String(pick.m))) pick.m = mods[0];
+    const chs = sub.modules[pick.m].chapters;
+    if(!chs.some(c=>String(c.no)===String(pick.no))) pick.no = chs[0].no;
+    const ch = chapOf(pick.sc, pick.no), exs = exList(pick.sc, ch).filter(e=>qCount(pick.sc,ch,e.code)>0);
+    if(!exs.some(e=>e.code===pick.code)) pick.code = exs.length ? exs[0].code : null;
+    $("lqS").innerHTML = TREE.order.map(sc=>opt(sc, subjOf(sc).name, pick.sc)).join("");
+    $("lqM").innerHTML = mods.map(m=>opt(m, sub.modules[m].name, pick.m)).join("");
+    $("lqC").innerHTML = chs.map(c=>opt(c.no, chTitle(c), pick.no)).join("");
+    $("lqE").innerHTML = exs.length ? exs.map(e=>opt(e.code, e.name, pick.code)).join("") : opt("", "No exercises", "");
+    const grid = $("lqGrid");
+    if(!pick.code){ grid.innerHTML = `<div class="empty">This chapter has no exercises with questions.</div>`; return drawSum(); }
+    const n = qCount(pick.sc, ch, pick.code), arr = S.d[key(pick.sc, ch.no, pick.code)] || [];
+    grid.innerHTML = Array.from({length:n}, (_,i)=>{ const qk = key(pick.sc, ch.no, pick.code)+"."+i, pm = pending.get(qk);
+      const st = pm!==undefined ? pendState(pm) : state(arr[i]||0);
+      return `<button class="chip lq-q ${st} ${pm!==undefined?"pend":""}" data-lqq="${esc(qk)}" title="Q${i+1}${pm!==undefined?" — marked in this session":""}">${i+1}</button>`; }).join("");
+    grid.querySelectorAll("[data-lqq]").forEach(b=>b.onclick = ()=>{ const qk = b.dataset.lqq;
+      if(pending.get(qk)===mode) pending.delete(qk); else pending.set(qk, mode); drawPick(); });
+    drawSum();
+  };
+  const drawSum = ()=>{
+    const by = {};
+    pending.forEach((m,qk)=>{ const q = qkInfo(qk); if(!q.ch) return; const g = q.s+"|"+q.c+"|"+q.e;
+      (by[g] = by[g] || {q, items:[]}).items.push({i:q.i, m}); });
+    const tag = {done:"solved", correct:"correct", wrong:"wrong", cant:"could not solve", clear:"cleared"};
+    $("lqSum").innerHTML = Object.keys(by).length ? Object.values(by).map(g=>{
+      const counts = {}; g.items.forEach(x=>counts[x.m] = (counts[x.m]||0)+1);
+      return `<div class="lq-line"><b>${esc(subjOf(g.q.s).short)} · ${esc(chTitle(g.q.ch))} · ${esc(g.q.ex.name)}</b>
+        <span>${Object.entries(counts).map(([m,c])=>`${c} ${tag[m]}`).join(", ")}</span>
+        <button class="x" data-lqclr="${esc(g.q.s+"|"+g.q.c+"|"+g.q.e)}" title="Unmark these">×</button></div>`; }).join("")
+      + `<div class="hint" style="margin:6px 0 0">${pending.size} question${pending.size===1?"":"s"} marked in this session.</div>`
+      : `<div class="hint" style="margin:0">Nothing marked yet — that's fine, questions are optional.</div>`;
+    modal.querySelectorAll("[data-lqclr]").forEach(b=>b.onclick = ()=>{ const [sc,no,code] = b.dataset.lqclr.split("|");
+      [...pending.keys()].forEach(qk=>{ const q = qkInfo(qk); if(q.s===sc && String(q.c)===String(no) && q.e===code) pending.delete(qk); }); drawPick(); });
+  };
+  if(pick){
+    $("lqS").onchange = e=>{ pick = {sc:e.target.value, m:null, no:null, code:null}; drawPick(); };
+    $("lqM").onchange = e=>{ pick.m = e.target.value; pick.no = null; drawPick(); };
+    $("lqC").onchange = e=>{ pick.no = e.target.value; pick.code = null; drawPick(); };
+    $("lqE").onchange = e=>{ pick.code = e.target.value; drawPick(); };
+    modal.querySelectorAll("[data-lqmode]").forEach(b=>b.onclick = ()=>{ mode = b.dataset.lqmode;
+      modal.querySelectorAll("[data-lqmode]").forEach(x=>x.classList.toggle("on", x===b)); });
+    $("lqAll").onclick = ()=>{ if(!pick.code) return; const ch = chapOf(pick.sc, pick.no), n = qCount(pick.sc, ch, pick.code);
+      for(let i=0;i<n;i++) pending.set(key(pick.sc, ch.no, pick.code)+"."+i, mode); drawPick(); };
+    drawPick();
+  }
+  modal.querySelector("#lNo").onclick = back;
   modal.querySelector("#lYes").onclick = ()=>{
     const msg = modal.querySelector("#lMsg");
     const date = modal.querySelector("#lDate").value, time = modal.querySelector("#lTime").value;
@@ -8813,9 +9013,27 @@ function addLogEntry(){
     if(isNaN(when)){ msg.textContent = "That day and time did not make sense."; return; }
     snapshot("add session");
     logSession(act, mins, dl, Math.floor(when.getTime()/60000));
+    /* the questions, counted on the session's own day */
+    let solved = 0;
+    pending.forEach((m, qk)=>{
+      const q = qkInfo(qk); if(!q.ch) return;
+      const arr = arrFor(q.s, q.c, q.e, qCount(q.s, q.ch, q.e));
+      let v = arr[q.i]||0; const was = isDone(v);
+      if(m==="done") v = setDone(v,1);
+      if(m==="correct"){ v = setResult(setDone(v,1),1); delete S.r[qk]; }
+      if(m==="wrong"){ v = setResult(setDone(v,1),2); S.r[qk] = S.r[qk] || {d:date, t:[]}; }
+      if(m==="cant"){ v = setResult(setDone(v,0),3); delete S.r[qk]; }
+      if(m==="clear"){ v = setResult(setDone(v,0),0); delete S.r[qk]; }
+      arr[q.i] = v;
+      if(!was && isDone(v)){ bumpStat(q.s, 1, q.c+"|"+q.e, date); solved++; }
+      if(was && !isDone(v)) bumpStat(q.s, -1, q.c+"|"+q.e, date);
+    });
+    if(pick) lqLast = Object.assign({}, pick);
+    if(pending.size){ try{ sweepFinishedHomework(); }catch(e){} buildTree(); markDirty(); }
     closeModal();
-    statView.anchor = new Date(date+"T00:00:00");
-    viewStats(); toastUndo("Session added");
+    if(VIEW.name==="stats") statView.anchor = new Date(date+"T00:00:00");
+    render();
+    toastUndo(pending.size ? `Session added · ${pending.size} question${pending.size>1?"s":""} marked${solved?`, ${solved} newly solved`:""}` : "Session added");
   };
 }
 
@@ -9848,14 +10066,14 @@ function wireSrRun(){
       picked.delete(i);
       if(q && sr.mine.has(i)){
         const arr = arrFor(q.s,q.c,q.e,qCount(q.s,q.ch,q.e));
-        if(isDone(arr[q.i]||0)){ arr[q.i] = setDone(arr[q.i]||0,0); bumpStat(q.s,-1); markDirty(); }
+        if(isDone(arr[q.i]||0)){ arr[q.i] = setDone(arr[q.i]||0,0); bumpStat(q.s,-1,q.c+"|"+q.e); markDirty(); }
         sr.mine.delete(i);
       }
     } else {
       picked.add(i);
       if(q){
         const arr = arrFor(q.s,q.c,q.e,qCount(q.s,q.ch,q.e));
-        if(!isDone(arr[q.i]||0)){ arr[q.i] = setDone(arr[q.i]||0,1); bumpStat(q.s,1); markDirty(); sr.mine.add(i); }
+        if(!isDone(arr[q.i]||0)){ arr[q.i] = setDone(arr[q.i]||0,1); bumpStat(q.s,1,q.c+"|"+q.e); markDirty(); sr.mine.add(i); }
       }
     }
     sr.done = picked.size;
@@ -9890,7 +10108,7 @@ function srStop(){
         picked.forEach(i=>{
           const q = qkInfo(sr.order[i]);
           const arr = arrFor(q.s,q.c,q.e,qCount(q.s,q.ch,q.e));
-          if(!isDone(arr[q.i]||0)){ arr[q.i] = setDone(arr[q.i]||0,1); bumpStat(q.s,1); }
+          if(!isDone(arr[q.i]||0)){ arr[q.i] = setDone(arr[q.i]||0,1); bumpStat(q.s,1,q.c+"|"+q.e); }
         });
         markDirty(); closeModal(); srLog(picked.size);
       };
@@ -13162,6 +13380,7 @@ function viewFiles(fid){
 function igDefault(){ return {joined:"", plFrom:"", revMigrated:false, filesMigrated:false, jee:{}, actMap:{}, actType:{}, recvTypes:null, idmap:{}}; }
 if(!S.ig) S.ig = igDefault();
 if(!S.todo) S.todo = newTodo();
+if(!S.qloc) S.qloc = {from:todayKey(), days:{}};
 if(!S.fs) S.fs = newFs();
 if(!S.look) S.look = lookDefault();
 if(S.asy === undefined) S.asy = null;
