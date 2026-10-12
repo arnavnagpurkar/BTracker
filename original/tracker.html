@@ -1440,6 +1440,12 @@ body.dragging-now, body.dragging-now *{ cursor:grabbing !important; user-select:
 .dplan{ border:1px solid var(--line); border-radius:var(--r2); overflow:hidden; background:rgba(10,15,27,.8); }
 .dp-row{ display:grid; grid-template-columns:78px minmax(0,1fr); border-bottom:1px solid var(--line); }
 .dp-row:last-child{ border-bottom:0; }
+.dp-row.mix .dp-time{ position:relative; background:var(--mixbg); box-shadow:none; }
+.dp-row.mix .dp-time::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--mixbar); }
+.it.mix{ background-image:var(--mixbg); border-left-width:1px !important; padding-left:9px; }
+.it.mix::before{ content:""; position:absolute; left:0; top:0; bottom:0; width:3px; background:var(--mixbar); pointer-events:none; }
+.rs-it.mix:not(.revblk){ background-image:var(--mixbg); }
+.rs-it.revblk.mix{ background-image:var(--mixbg); }
 .dp-row.brk{ opacity:.6; }
 .dp-time{ padding:12px 10px; border-right:1px solid var(--line); display:flex; flex-direction:column; gap:2px; background:linear-gradient(90deg, color-mix(in srgb, var(--c) 10%, transparent), transparent); box-shadow:inset 3px 0 0 var(--c); }
 .dp-time b{ font-size:16px; font-weight:600; } .dp-time span{ font-size:12.5px; color:var(--dim); }
@@ -2358,6 +2364,13 @@ function migrate(){
 const bTypes = b => (b.types && b.types.length) ? b.types : [b.type];
 const bSubjs = b => (b.subjs && b.subjs.length) ? b.subjs.filter(s => s && s !== 'any') : ((b.subj && b.subj !== 'any') ? [b.subj] : []);
 const typeNames = b => bTypes(b).map(t => typeOf(t).name).join(' + ');
+/* a block with several types (Lecture + Revision + Self study) is drawn in all their colours */
+const typeCols = b => [...new Set(bTypes(b).map(t => typeOf(t).c))];
+function hexRgb(c){ const m = /^#?([0-9a-f]{6}|[0-9a-f]{3})$/i.exec(String(c || '').trim()); if (!m) return null; let h = m[1]; if (h.length === 3) h = h.split('').map(x => x + x).join(''); return [0,2,4].map(i => parseInt(h.slice(i, i+2), 16)); }
+function mixCol(cols){ const rs = cols.map(hexRgb); if (!rs.length || rs.some(x => !x)) return cols[0]; return '#' + [0,1,2].map(k => Math.round(rs.reduce((s, r) => s + r[k], 0) / rs.length).toString(16).padStart(2, '0')).join(''); }
+const blockCol = b => { const cs = typeCols(b); return cs.length > 1 ? mixCol(cs) : (cs[0] || typeOf(b.type).c); };
+const mixVars = cs => cs && cs.length > 1 ? `;--mixbar:linear-gradient(180deg, ${cs.join(', ')});--mixbg:linear-gradient(135deg, ${cs.map(c => `color-mix(in srgb, ${c} 22%, transparent)`).join(', ')})` : '';
+const isMixed = b => typeCols(b).length > 1;
 const subjNames = b => { const s = bSubjs(b).map(rsOf).filter(Boolean); return s.length ? s.map(x => x.name).join(' + ') : 'Any subject'; };
 const typeOf = id => S.plan.types.find(t => t.id === id) || { id:'', name:'Untitled', c:'#7C88A3' };
 const rsOf = id => (!id || id === 'any') ? null : (S.plan.rsubj.find(s => s.id === id) || null);
@@ -2539,9 +2552,9 @@ function itemsFor(date){
     const tm = blockTimes(date, b);
     const eff = tm.eff != null && !t.brk ? tm.eff : null;
     const rvs = revOn(date).filter(i => i.blk === b.id);
-    const rnote = rvs.length ? '↺ ' + rvs.map(i => (i.done ? '✓ ' : '') + (chapterById(i.ch)?.name || 'chapter')).join(', ') : '';
+    const rnote = rvs.length ? '↺ ' + rvs.map(i => (i.done ? '✓ ' : '') + (chapterById(i.ch)?.name || 'chapter') + (isMixed(b) && i.start ? ` ${i.start}–${i.end}` : '')).join(', ') : '';
     items.push({ kind:'bl', id:b.id, part: b._parent ? `${b._seg+1}/${b._nseg}` : '', title:typeNames(b), sub: subjNames(b), subC: ss.length === 1 ? ss[0].c : '',
-      note: rnote ? rnote + (b.note ? ' · ' + b.note : '') : b.note, start:b.start, end:hm(bEnd(b)), c:t.c, eff, wk:b.wk, brk:!!t.brk, planned:!!b._planned,
+      note: rnote ? rnote + (b.note ? ' · ' + b.note : '') : b.note, start:b.start, end:hm(bEnd(b)), c:blockCol(b), cs: t.brk ? null : typeCols(b), eff, wk:b.wk, brk:!!t.brk, planned:!!b._planned,
       free: !!b._free, done:!!lg.done, prod: lg.done ? lg.prod : null, ov:b._ov || b._extra, studied: tm.done ? tm.studied : null, plannedMin: tm.planned, ratio: tm.done && tm.planned ? tm.studied / tm.planned : null });
   });
   revOn(date).filter(i => i.start && !(i.blk && ids.has(i.blk))).forEach(i => {
@@ -2571,7 +2584,7 @@ function actualItemsFor(date){
     const btNote = lg.btInfo ? '⏱ ' + Object.values(lg.btInfo).map(x => `${x.label} ${durTxt(x.m)}`).join(', ') : '';
     const note = [btNote, rvs.length ? '↺ ' + rvs.map(i => chapterById(i.ch)?.name || '').join(', ') : '', segSummary(lg), b.note && b.note !== segSummary(lg) ? b.note : ''].filter(Boolean).join(' · ');
     items.push({ kind:'bl', actual:true, id:b.id, title:typeNames(b), sub:subjNames(b), subC: ss.length === 1 ? ss[0].c : '', note, start:hm(st), end:hm(Math.min(24*60 - 1, st + dur)),
-      c:t.c, done:true, prod: lg.prod ?? null, eff: tm.eff, brk:!!t.brk, part: b._parent ? `${b._seg+1}/${b._nseg}` : '', studied: tm.studied, plannedMin: tm.planned, ratio: tm.planned ? tm.studied / tm.planned : 1,
+      c:blockCol(b), cs: t.brk ? null : typeCols(b), done:true, prod: lg.prod ?? null, eff: tm.eff, brk:!!t.brk, part: b._parent ? `${b._seg+1}/${b._nseg}` : '', studied: tm.studied, plannedMin: tm.planned, ratio: tm.planned ? tm.studied / tm.planned : 1,
       over, planLen });
   });
   revOn(date).filter(i => i.done && i.start && !(i.blk && ids.has(i.blk))).forEach(i => {
@@ -2996,7 +3009,7 @@ function timeGrid(colsIn, H = 46){
       /* the stretch studied beyond the plan: a dashed line where the plan ended, and the extra time */
       const overMark = isAct && it.over > 0 && it.planLen ? `<span class="overline" style="top:${Math.min(h - 2, it.planLen / 60 * H)}px" title="Planned to stop here"></span>` : '';
       const overTxt = isAct && it.over > 0 ? ` · <span class="overtxt" title="Studied past the planned length">+${durTxt(it.over)}</span>` : '';
-      return `<div class="it ${it.kind==='bl'?'bl':'ev'} ${it.done && !isAct?'done':''} ${isAct?'act':''} ${isAct && it.over > 0?'over':''} ${it.planned?'planned':''} ${bare?'bare':''}" style="--c:${it.c};top:${top}px;height:${h}px;left:calc(${left}% + 3px);width:calc(${w}% - 6px)${op ? `;--op:${op}` : ''}" data-item="${it.kind}|${it.id}|${d}" title="${esc(tip)}">
+      return `<div class="it ${it.kind==='bl'?'bl':'ev'} ${it.done && !isAct?'done':''} ${isAct?'act':''} ${isAct && it.over > 0?'over':''} ${it.planned?'planned':''} ${bare?'bare':''} ${it.cs && it.cs.length > 1 ? 'mix' : ''}" style="--c:${it.c};top:${top}px;height:${h}px;left:calc(${left}% + 3px);width:calc(${w}% - 6px)${op ? `;--op:${op}` : ''}${mixVars(it.cs)}" data-item="${it.kind}|${it.id}|${d}" title="${esc(tip)}">
         ${overMark}${ctl}${showName?`<b>${esc(it.title)}${it.part?` <span class="dim" title="Part of a split block">· ${it.part}</span>`:''}${it.ov?' <span class="dim" title="Changed for this day">✎</span>':''}</b>`:''}${showTime?`<span class="tm">${it.start}–${it.end}${overTxt}${pct}</span>`:''}
         ${showDet && it.kind==='bl'?`<span class="isub" style="${it.subC?`color:${it.subC}`:''}">${esc(it.sub)}</span>`:''}${showDet && it.note?`<span class="inote">${esc(it.note)}</span>`:''}</div>`;
     }).join('');
@@ -3098,8 +3111,9 @@ function vPlan(){
         <span class="dp-dur"><select class="inp" data-pf="h" aria-label="Hours">${hOpts(h)}</select><select class="inp" data-pf="m" aria-label="Minutes">${mOpts(m)}</select></span>
         <button class="icon-btn ghost" data-pdel="${b.id}|${k}" aria-label="Remove">×</button></div>`; }).join('');
     const brk = t.brk;
-    return `<div class="dp-row ${brk?'brk':''}" style="--c:${t.c}" data-prow="${b.id}"><div class="dp-time num"><span class="grip dp-bgrip" title="Drag to move this whole block" aria-label="Drag to move this block">⋮⋮</span><b>${b.start}</b><span>${hm(bEnd(b))}</span></div>
-      <div class="dp-main" ${logged ? '' : `data-pblock="${b.id}"`}><div class="dp-bh"><i class="dot" style="background:${t.c}"></i><b>${esc(typeNames(b))}</b><span class="mute">${esc(subjNames(b))}</span>${b.note?`<span class="dim">· ${esc(b.note)}</span>`:''}<span class="grow"></span>
+    const mixd = !brk && isMixed(b);
+    return `<div class="dp-row ${brk?'brk':''} ${mixd?'mix':''}" style="--c:${blockCol(b)}${mixd ? mixVars(typeCols(b)) : ''}" data-prow="${b.id}"><div class="dp-time num"><span class="grip dp-bgrip" title="Drag to move this whole block" aria-label="Drag to move this block">⋮⋮</span><b>${b.start}</b><span>${hm(bEnd(b))}</span></div>
+      <div class="dp-main" ${logged ? '' : `data-pblock="${b.id}"`}><div class="dp-bh"><i class="dot" style="background:${mixd ? `conic-gradient(${typeCols(b).join(', ')})` : t.c}"></i><b>${esc(typeNames(b))}</b><span class="mute">${esc(subjNames(b))}</span>${b.note?`<span class="dim">· ${esc(b.note)}</span>`:''}<span class="grow"></span>
         ${(() => { const tm = blockTimes(d, b); return tm.done ? `<span class="chip" style="color:var(--ok)">${fireHTML(tm.studied, tm.planned, 'sm')} studied ${durTxt(tm.studied)} of ${durTxt(tm.planned)}${tm.eff!=null?' · '+durTxt(tm.eff)+' effective':''}</span>` : ''; })()}
         <span class="num ${free<0?'over':free===+b.dur?'dim':'mute'}" style="font-size:13px">${items.length ? (free<0 ? `${durTxt(-free)} over` : free ? `${durTxt(used)} planned · ${durTxt(free)} free` : 'Fully planned') : durTxt(b.dur)}</span>
         <span class="dp-acts"><button class="icon-btn ghost" data-ptime="${b.id}" title="Adjust the time" aria-label="Adjust time">⏱</button><button class="icon-btn ghost" data-pedit="${b.id}" title="Edit this block for this day" aria-label="Edit block">✎</button><button class="icon-btn ghost" data-premove="${b.id}" title="Remove this block from this day" aria-label="Remove block">×</button></span></div>
@@ -3345,6 +3359,9 @@ function openEvent(ev, preset = {}, occDate){
 
 /* ---------- revision editor ---------- */
 /* Revision scheduler: pick a date, then a time on that day's schedule — a free slot, or inside a Revision block */
+const blkOn = (date, id) => id ? dayBlocks(date).find(b => b.id === id) || null : null;
+/* inside a block that is only partly revision, the revision takes a slice of it, not the whole block */
+const partRev = (date, id) => { const b = blkOn(date, id); return !!(b && isMixed(b)); };
 function revStrip(date, st, selfId){
   const H = 34, items = itemsFor(date).filter(i => !(i.kind === 'rv' && i.id === selfId));
   const starts = items.map(i => mins(i.start)), ends = items.map(i => mins(i.end) ?? mins(i.start) + 45);
@@ -3356,10 +3373,10 @@ function revStrip(date, st, selfId){
     const s0 = mins(i.start), e0 = mins(i.end) ?? s0 + 45;
     const blk = i.kind === 'bl' ? dayBlocks(date).find(b => b.id === i.id) : null;
     const rv = blk && isRevBlock(blk) && !i.brk, on = st.blk === i.id;
-    return `<div class="rs-it ${i.kind} ${rv?'revblk':''} ${on?'on':''} ${i.brk?'brk':''}" style="--c:${i.c};top:${y(s0)}px;height:${Math.max(16, (e0-s0)/60*H - 2)}px" ${rv?`data-rassign="${i.id}" title="Revise inside this block"`:''}>
+    return `<div class="rs-it ${i.kind} ${rv?'revblk':''} ${on?'on':''} ${i.brk?'brk':''} ${i.cs && i.cs.length > 1 ? 'mix' : ''}" style="--c:${i.c}${mixVars(i.cs)};top:${y(s0)}px;height:${Math.max(16, (e0-s0)/60*H - 2)}px" ${rv?`data-rassign="${i.id}" title="Revise inside this block"`:''}>
       <b>${esc(i.title)}</b><span>${i.start}–${i.end}</span>${rv ? `<em>${on ? '✓ Assigned here' : 'Assign here'}</em>` : ''}</div>`;
   }).join('');
-  const sel = st.start && st.end && !st.blk ? `<div class="rs-sel" style="top:${y(mins(st.start))}px;height:${Math.max(14, (mins(st.end)-mins(st.start))/60*H)}px"><b>Revision</b> ${st.start}–${st.end}</div>` : '';
+  const sel = st.start && st.end && (!st.blk || partRev(date, st.blk)) ? `<div class="rs-sel" style="top:${y(mins(st.start))}px;height:${Math.max(14, (mins(st.end)-mins(st.start))/60*H)}px"><b>Revision</b> ${st.start}–${st.end}</div>` : '';
   return `<div class="rstrip-wrap"><div class="rstrip" data-gs="${gs}" data-h="${H}" style="height:${(ge-gs)*H}px">${rows}<div class="rs-lane">${blocks}${sel}</div></div></div>`;
 }
 function openRev(item, chId, queue){
@@ -3377,7 +3394,9 @@ function openRev(item, chId, queue){
       <div class="row" style="gap:6px">${[['Today',0],['Tomorrow',1],['In 3 days',3],['In a week',7]].map(([l,n]) => `<button type="button" class="btn sm ${st.date===addDays(today(),n)?'pri':''}" data-quick="${n}">${l}</button>`).join('')}</div>
       <div class="rv-pick-help">${dayRev.length ? `This day has ${dayRev.length} revision block${dayRev.length>1?'s':''} (pink “Assign here”). Put the revision inside one, or click any empty time to use a free slot.` : 'Click an empty time on the schedule to pick a free slot.'}</div>
       ${revStrip(st.date, st, it.id)}
-      <div class="row rv-time">${st.blk ? `<span class="chip on-rev">Inside the ${esc((itemsFor(st.date).find(i => i.id === st.blk) || {}).title || 'revision')} block · ${st.start}–${st.end}</span><button type="button" class="btn sm ghost" id="rvUnassign">Use a free slot instead</button>`
+      <div class="row rv-time">${st.blk && partRev(st.date, st.blk) ? (() => { const b = blkOn(st.date, st.blk), maxL = bEnd(b) - mins(b.start);
+          return `<span class="chip on-rev">Inside the ${esc(typeNames(b))} block (${b.start}–${hm(bEnd(b))})</span><label class="fld">From<input type="time" class="inp" id="rvStart" value="${st.start}" min="${b.start}" max="${hm(bEnd(b) - 5)}"></label><label class="fld">Length<select class="inp" id="rvDur">${[...new Set([15,30,45,60,75,90,120,150,180].filter(m => m < maxL).concat([maxL]))].sort((x, y) => x - y).map(m => `<option value="${m}" ${m===st.dur?'selected':''}>${m === maxL ? durTxt(m) + ' (whole block)' : durTxt(m)}</option>`).join('')}</select></label><span class="mute" style="align-self:end;padding-bottom:8px">until <b style="color:var(--ink)">${st.end}</b></span><button type="button" class="btn sm ghost" id="rvUnassign" style="align-self:end">Use a free slot instead</button>`; })()
+        : st.blk ? `<span class="chip on-rev">Inside the ${esc((itemsFor(st.date).find(i => i.id === st.blk) || {}).title || 'revision')} block · ${st.start}–${st.end}</span><button type="button" class="btn sm ghost" id="rvUnassign">Use a free slot instead</button>`
         : `<label class="fld">From<input type="time" class="inp" id="rvStart" value="${st.start}"></label><label class="fld">Length<select class="inp" id="rvDur">${[15,30,45,60,75,90,120,150,180].map(m => `<option value="${m}" ${m===st.dur?'selected':''}>${durTxt(m)}</option>`).join('')}</select></label><span class="mute" style="align-self:end;padding-bottom:8px">${st.start ? 'until <b style="color:var(--ink)">' + st.end + '</b>' : 'No time picked yet'}</span>`}</div>
       ${study.length ? `<div class="rv-warn study">⚠ This time is inside ${study.map(b => `“${esc(typeNames(b))}” (${b.start}–${hm(bEnd(b))})`).join(', ')}. Saving here splits ${study.length > 1 ? 'those study blocks' : 'that study block'} and <b>removes the overlapping ${durTxt(study.reduce((a, b) => a + Math.min(bEnd(b), em) - Math.max(mins(b.start), sm), 0))}</b> of study time, which becomes this revision.</div>` : ''}
       ${clash.length ? `<div class="rv-warn">Overlaps ${clash.map(i => esc(i.title)).slice(0,3).join(', ')}. Pick a free slot or assign it to a revision block.</div>` : ''}`;
@@ -3394,7 +3413,14 @@ function openRev(item, chId, queue){
     r.addEventListener('datechange', e => { if (e.target.id === 'rvDate' && e.target.dataset.value) { st.date = e.target.dataset.value; st.blk = ''; st.start = ''; st.end = ''; draw(r); } });
     r.addEventListener('click', e => {
       const q1 = e.target.closest('[data-quick]'); if (q1) { st.date = addDays(today(), +q1.dataset.quick); setDateBtn(r.querySelector('#rvDate'), st.date); st.blk = ''; st.start = ''; st.end = ''; draw(r); return; }
-      const as = e.target.closest('[data-rassign]'); if (as) { const i = itemsFor(st.date).find(x => x.id === as.dataset.rassign); if (!i) return; st.blk = i.id; st.start = i.start; st.end = i.end; draw(r); return; }
+      const as = e.target.closest('[data-rassign]'); if (as) { const i = itemsFor(st.date).find(x => x.id === as.dataset.rassign); if (!i) return; st.blk = i.id;
+        const b = blkOn(st.date, i.id);
+        if (b && isMixed(b)) {
+          /* start after any revision already placed in this block */
+          const s0 = mins(b.start), e0 = bEnd(b), taken = revOn(st.date).filter(x => x.blk === b.id && x.id !== it.id && x.end).reduce((m, x) => Math.max(m, mins(x.end)), s0);
+          const s = taken < e0 - 5 ? taken : s0; st.dur = Math.min(st.dur || 60, e0 - s); st.start = hm(s); st.end = hm(s + st.dur);
+        } else { st.start = i.start; st.end = i.end; }
+        draw(r); return; }
       if (e.target.closest('#rvUnassign')) { st.blk = ''; st.start = ''; st.end = ''; draw(r); return; }
       const lane = e.target.closest('.rs-lane'); if (lane && (e.target === lane || e.target.closest('.rs-sel') || e.target.closest('.rs-it:not([data-rassign])'))) {
         const strip = r.querySelector('.rstrip'), rc = lane.getBoundingClientRect();
@@ -3402,8 +3428,13 @@ function openRev(item, chId, queue){
         st.blk = ''; st.start = hm(clamp(m, 0, 24*60 - 15)); st.end = hm(Math.min(24*60 - 1, mins(st.start) + st.dur)); draw(r); }
     });
     r.addEventListener('change', e => {
-      if (e.target.id === 'rvStart' && e.target.value) { st.start = e.target.value; st.end = hm(Math.min(24*60 - 1, mins(st.start) + st.dur)); draw(r); }
-      if (e.target.id === 'rvDur') { st.dur = +e.target.value; if (st.start) st.end = hm(Math.min(24*60 - 1, mins(st.start) + st.dur)); draw(r); }
+      const inb = st.blk && partRev(st.date, st.blk) ? blkOn(st.date, st.blk) : null;
+      if (e.target.id === 'rvStart' && e.target.value) { st.start = e.target.value;
+        if (inb) { const s = clamp(mins(st.start), mins(inb.start), bEnd(inb) - 5); st.start = hm(s); st.dur = Math.min(st.dur, bEnd(inb) - s); }
+        st.end = hm(Math.min(24*60 - 1, mins(st.start) + st.dur)); draw(r); }
+      if (e.target.id === 'rvDur') { st.dur = +e.target.value;
+        if (inb && st.start && mins(st.start) + st.dur > bEnd(inb)) st.start = hm(Math.max(mins(inb.start), bEnd(inb) - st.dur));
+        if (st.start) st.end = hm(Math.min(24*60 - 1, mins(st.start) + st.dur)); draw(r); }
     });
     r.querySelector('#rvSave').onclick = () => {
       if (!st.start || !st.end) { toast('Pick a time: click a free slot or a revision block on the schedule'); r.querySelector('.rstrip-wrap')?.classList.add('shake'); setTimeout(() => r.querySelector('.rstrip-wrap')?.classList.remove('shake'), 500); return; }
