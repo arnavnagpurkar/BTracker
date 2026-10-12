@@ -807,6 +807,20 @@ button.td-car:hover{color:var(--text);background:var(--ink-3)}
 .td.done .td-t{text-decoration:line-through;color:var(--text-3)}
 .td-in{flex:1;min-width:180px;padding:4px 8px}
 .td-lab{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap;color:var(--lc);background:color-mix(in srgb,var(--lc) 15%,transparent);border:1px solid color-mix(in srgb,var(--lc) 40%,transparent)}
+.ws-group{margin-bottom:16px}
+.ws-list{padding:4px}
+.wsrow{display:grid;grid-template-columns:auto minmax(0,1fr) 120px auto auto;align-items:center;gap:12px;padding:9px 10px 9px 14px;border-radius:9px;cursor:pointer;position:relative;transition:background .15s}
+.wsrow::before{content:"";position:absolute;left:4px;top:10px;bottom:10px;width:3px;border-radius:3px;background:var(--sc)}
+.wsrow:hover,.wsrow:focus-visible{background:var(--tint2);outline:none}
+.wsrow + .wsrow{border-top:1px solid var(--rule-soft)}
+.ws-name{min-width:0}.ws-name b{font-weight:600;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-name small{display:block;color:var(--text-3);font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ws-bar{height:6px;border-radius:99px;background:var(--ink-3);overflow:hidden}.ws-bar i{display:block;height:100%;background:var(--sc);border-radius:99px}
+.ws-num{font-family:var(--mono);font-size:12.5px;color:var(--text-2);white-space:nowrap;text-align:right}
+.ws-acts .pen{opacity:1;margin:0}.ws-acts{display:flex;gap:2px;opacity:.35;transition:opacity .15s}.wsrow:hover .ws-acts,.wsrow:focus-within .ws-acts{opacity:1}
+.ws-form{display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.ws-form .block{display:block}.ws-form select,.ws-form .tin{width:100%}
+.ws-sec{margin-top:22px}.ws-sec .ovh{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+@media (max-width:640px){.wsrow{grid-template-columns:auto minmax(0,1fr) auto;}.wsrow .ws-bar{display:none}.ws-acts{opacity:1}.ws-form{grid-template-columns:1fr}}
 .td-n{font-family:var(--mono);font-size:11.5px;color:var(--text-3)}
 .td-acts{margin-left:auto;display:flex;gap:2px;opacity:0;transition:opacity .15s}
 .td:hover .td-acts,.td:focus-within .td-acts{opacity:1}
@@ -1333,6 +1347,9 @@ hr.sep{ border:0; border-top:1px solid var(--line); margin:14px 0; }
 .bmenu{ display:flex; gap:0; opacity:.55; } .bcol:hover > .bhead .bmenu{ opacity:1; }
 .bmenu .icon-btn{ width:24px; height:22px; font-size:14px; }
 .bmenu .icon-btn[disabled]{ opacity:.25; }
+.rt-ver{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 4px; padding:8px 12px; border:1px solid rgba(var(--acc-rgb),.3); border-radius:10px; background:rgba(var(--acc-rgb),.05); font-size:13.5px; }
+.rt-ver.dim{ border-color:var(--line); background:none; padding:4px 2px; }
+.rt-ver .m{ color:var(--acc); }
 .daychecks{ display:flex; flex-wrap:wrap; gap:6px; }
 .daychecks .fchip{ cursor:pointer; }
 
@@ -2105,7 +2122,30 @@ function restoreSnap(str){
 function undo(){ if (!HIST.u.length) return; HIST.r.push(snap()); restoreSnap(HIST.u.pop()); toast('Undone'); }
 function redo(){ if (!HIST.r.length) return; HIST.u.push(snap()); restoreSnap(HIST.r.pop()); toast('Redone'); }
 function updUndo(){ const u = document.getElementById('undoBtn'), r = document.getElementById('redoBtn'); if (u) u.disabled = !HIST.u.length; if (r) r.disabled = !HIST.r.length; }
-function touch(...docs){ histPush(); touchQuiet(...docs); }
+function touch(...docs){ if (docs.includes('plan') && !HIST.pend && HIST.last) versionRoutines(HIST.last); histPush(); touchQuiet(...docs); }
+/* a routine edit only changes future days: the version a day had before the edit is kept for today and every earlier date */
+function versionRoutines(lastStr){
+  let old; try { old = JSON.parse(lastStr).plan; } catch(e){ return; }
+  if (!old || !old.tree) return;
+  const t = today(), H = S.plan.treeHist || (S.plan.treeHist = {});
+  const pairs = [];
+  for (let i = 0; i < 7; i++) pairs.push([String(i), old.tree[i], S.plan.tree[i]]);
+  (old.special || []).forEach(o => { const cur = S.plan.special.find(x => x.id === o.id); if (cur) pairs.push(['sp:' + o.id, o.tree, cur.tree]); });
+  pairs.forEach(([k, was, now]) => {
+    if (!was || !now || !treeSize(was) && !was.fork) return;          /* building a routine for the first time applies straight away */
+    if (JSON.stringify(was) === JSON.stringify(now)) return;
+    const list = H[k] || (H[k] = []);
+    if (list.length && list[list.length-1].until >= t) return;          /* today's original is already kept */
+    list.push({ until:t, tree:clone(was) });
+  });
+}
+/* the version of a routine a given date used */
+function treeAt(k, date){
+  const list = date && S.plan.treeHist && S.plan.treeHist[String(k)];
+  if (list && list.length) { const e = list.find(x => date <= x.until); if (e) return e.tree; }
+  return treeFor(k);
+}
+function keptToday(k){ const list = S.plan.treeHist && S.plan.treeHist[String(k)]; const e = list && list[list.length-1]; return e && e.until === today() ? e : null; }
 function touchQuiet(...docs){
   const t = Date.now();
   docs.forEach(d => { S[d]._u = t; dirty.add(d); });
@@ -2381,7 +2421,7 @@ function routineFrom(){ return S.cfg.startDate ? addDays(S.cfg.startDate, -7) : 
 function routePath(date){
   const f = dayFacts(date), blocks = [], forks = [];
   if (date < routineFrom()) return { blocks, forks };
-  let n = treeFor(routineKey(date));
+  let n = treeAt(routineKey(date), date);
   while (n) {
     n.blocks.forEach(b => blocks.push(b));
     if (!n.fork) break;
@@ -3176,6 +3216,9 @@ function vRoutines(){
   return `<div class="wd-tabs">${tabs}<span class="wd-sep"></span>${sTabs}<button class="add-sp" data-spnew>＋ Special day</button></div>
     ${spHead}
     ${tagRulesPanel()}
+    ${(() => { const kt = keptToday(di);
+      return kt ? `<div class="rt-ver"><span class="m">↻</span><span>Today keeps the ${esc(keyName(di))} routine it had before your edits. Your changes start from ${sp ? 'the next day that uses it' : 'next ' + esc(WDL[di])}.</span><span class="grow"></span><button class="btn sm" data-rtnowtoo="${di}">Use the new version today too</button></div>`
+        : `<div class="rt-ver dim"><span class="m">↻</span><span>Edits apply from tomorrow on. Today and earlier days keep the version they had.</span></div>`; })()}
     <div class="row" style="margin:6px 0"><div class="root-node"><span class="m">λ</span><span><b style="color:var(--ink);font-weight:600">${esc(keyName(di))}</b> reads top to bottom. At a fork, the first branch whose condition is true is followed. Drag blocks to reorder.</span></div>
       <span class="grow"></span><button class="btn sm" data-act="manage">Block types & subjects</button><button class="btn sm" data-rtcopyday>Copy whole routine…</button>${empty?'':'<button class="btn sm danger" data-rtclear>Clear</button>'}</div>
     ${empty ? `<div class="empty" style="margin-top:14px"><p>${sp ? `No blocks for “${esc(sp.name)}” yet. Build it from scratch or start from one of your weekday routines.` : `No routine for ${WDL[di]} yet. Add blocks for the part of the day that never changes, then fork where lecture and non-lecture days split.`}</p>
@@ -4095,7 +4138,7 @@ function exampleDay(){
 document.addEventListener('click', e => {
   const dpb = e.target.closest('[data-datepick]'); if (dpb) { e.preventDefault(); openDP(dpb); return; }
   if (e.target.closest('.modal-bg')) return;
-  const t = e.target.closest('[data-go],[data-act],[data-subj],[data-exam],[data-toggle],[data-bump],[data-addsub],[data-delsub],[data-delch],[data-revexam],[data-tick],[data-addch],[data-editch],[data-revcancel],[data-revsort],[data-revset],[data-revedit],[data-dnav],[data-wnav],[data-mnav],[data-openday],[data-bdone],[data-item],[data-dayflag],[data-editday],[data-newev],[data-addextra],[data-unskip],[data-rtday],[data-spnew],[data-spdel],[data-spundate],[data-spfrom],[data-rblk],[data-radd],[data-rfork],[data-rcond],[data-rbadd],[data-rbdel],[data-rbmove],[data-rbcopy],[data-rtcopyday],[data-rtclear],[data-rtexample],[data-openfile],[data-renfile],[data-delfile],[data-bdel],[data-revlog],[data-setcfg],[data-theme-pick],[data-pedit],[data-premove],[data-revgo],[data-selmode],[data-selq],[data-seltag],[data-pclose],[data-tagtoggle],[data-newtag],[data-tradd],[data-trdel],[data-tagrange],[data-delflag],[data-delflagask],[data-daypop],[data-planday],[data-pnav],[data-padd],[data-pdel],[data-pclear]');
+  const t = e.target.closest('[data-go],[data-act],[data-subj],[data-exam],[data-toggle],[data-bump],[data-addsub],[data-delsub],[data-delch],[data-revexam],[data-tick],[data-addch],[data-editch],[data-revcancel],[data-revsort],[data-revset],[data-revedit],[data-dnav],[data-wnav],[data-mnav],[data-openday],[data-bdone],[data-item],[data-dayflag],[data-editday],[data-newev],[data-addextra],[data-unskip],[data-rtday],[data-spnew],[data-spdel],[data-spundate],[data-spfrom],[data-rblk],[data-radd],[data-rfork],[data-rcond],[data-rbadd],[data-rbdel],[data-rbmove],[data-rbcopy],[data-rtcopyday],[data-rtclear],[data-rtexample],[data-rtnowtoo],[data-openfile],[data-renfile],[data-delfile],[data-bdel],[data-revlog],[data-setcfg],[data-theme-pick],[data-pedit],[data-premove],[data-revgo],[data-selmode],[data-selq],[data-seltag],[data-pclose],[data-tagtoggle],[data-newtag],[data-tradd],[data-trdel],[data-tagrange],[data-delflag],[data-delflagask],[data-daypop],[data-planday],[data-pnav],[data-padd],[data-pdel],[data-pclear]');
   if (!t) {
     const col = e.target.closest('.tg-col');
     if (col && (e.target === col || e.target.classList.contains('act-empty')) && col.dataset.mode === 'actual') {
@@ -4205,6 +4248,13 @@ document.addEventListener('click', e => {
     return confirmBox(`Delete “${esc(sp.name)}”?`, 'Its blocks are removed and any dates using it go back to their weekday routine.', 'Delete', () => {
       S.plan.special = S.plan.special.filter(x => x.id !== sp.id); Object.keys(S.plan.dayRoutine).forEach(k => { if (S.plan.dayRoutine[k] === sp.id) delete S.plan.dayRoutine[k]; });
       V.rtDay = new Date().getDay(); touch('plan'); render(); }); }
+  if (d.rtnowtoo != null) { const k = String(d.rtnowtoo), list = (S.plan.treeHist||{})[k];
+    if (list && list.length && list[list.length-1].until === today()) {
+      const y = addDays(today(), -1), prev = list[list.length-2];
+      if (prev && prev.until >= y) list.pop(); else list[list.length-1].until = y;
+      if (!list.length) delete S.plan.treeHist[k];
+      touch('plan'); render(); toast('Today uses the new version'); }
+    return; }
   if (d.spundate) { delete S.plan.dayRoutine[d.spundate]; touch('plan'); return render(); }
   if (d.spfrom) { setTree(V.rtDay, cloneNode(S.plan.tree[+d.spfrom])); touch('plan'); return render(); }
   if (d.rblk) { const [p, i] = d.rblk.split('|'); return openRBlock(p, +i); }
@@ -4322,6 +4372,8 @@ document.addEventListener('keydown', e => {
   e.preventDefault(); dz.classList.toggle('over', ev === 'dragover');
   if (ev === 'drop') uploadFiles([...e.dataTransfer.files]);
 }));
+/* remember folding of panels so a re-render never springs them open (or shut) */
+document.addEventListener('toggle', e => { const t = e.target; if (t && t.classList && t.classList.contains('tag-rules')) V.tagRulesOpen = t.open; }, true);
 $('#collapseBtn').onclick = () => { S.cfg.collapsed = !S.cfg.collapsed; touchQuiet('cfg'); render(); };
 document.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { document.body.style.setProperty('--mx', e.clientX + 'px'); document.body.style.setProperty('--my', e.clientY + 'px'); } }, { passive:true });
 /* floating tooltip for flames (and anything with data-tip) */
@@ -5594,7 +5646,7 @@ const BUILT_ACTS = [{id:"rev",n:"Revision",c:"#ffd43b"},{id:"mock",n:"Mock test"
    Question value = 6 bits: done | result(2) | review | stars(2)
    result 0 none / 1 correct / 2 wrong / 3 could not solve
    ============================================================ */
-function newCustom(){ return {subs:[], mods:{}, chs:{}, exs:{}, cnt:{}, ren:{}, num:{}, mod:{}, tags:[], acts:[], refAdded:{}, colr:{}, hideAct:{}, secOrder:[], secHide:{}, bmAt:{}}; }
+function newCustom(){ return {subs:[], mods:{}, chs:{}, exs:{}, cnt:{}, ren:{}, num:{}, mod:{}, tags:[], acts:[], refAdded:{}, colr:{}, hideAct:{}, secOrder:[], secHide:{}, bmAt:{}, wsKinds:["DPP","Worksheet"], wsMix:{}}; }
 /* fields added after some saves were written, so an older code still loads */
 function fillCustom(){
   S.x = S.x || newCustom();
@@ -5680,7 +5732,10 @@ function stateSnap(label){
   return o;
 }
 function restoreSnap(o){
+  /* folding a list is a view choice, not an edit: undo/redo keep how things are folded right now */
+  const folds = {}; ((S.todo && S.todo.items) || []).forEach(it=>{ folds[it.id] = it.open; });
   SNAP_FIELDS.forEach(f=>{ S[f] = JSON.parse(o[f]); });
+  ((S.todo && S.todo.items) || []).forEach(it=>{ if(it.id in folds) it.open = folds[it.id]; });
   buildTree(); markDirty(); paintUndo(); render();
 }
 function snapshot(label){
@@ -5741,7 +5796,7 @@ function buildTree(){
       (S.x.chs[sc+"|"+mid]||[]).forEach(cc=>sub.modules[mid].chapters.push({no:cc.no, name:cc.name, custom:true, mod:mid, exs:[]}));
     for(const mid of sub.order)
       sub.modules[mid].chapters.forEach(ch=>
-        (S.x.exs[sc+"|"+ch.no]||[]).forEach(ce=>ch.exs.push({code:ce.code, name:ce.name, tag:"Added by you", custom:true})));
+        (S.x.exs[sc+"|"+ch.no]||[]).forEach(ce=>ch.exs.push({code:ce.code, name:ce.name, tag:ce.ws ? ce.ws.k : "Added by you", custom:true, ws:ce.ws||null})));
     labelChapters(sc);
   }
   return TREE;
@@ -6150,7 +6205,7 @@ function crumbs(parts){
 }
 /* each section remembers where you were, so switching away and back does not
    drop you at the top of it */
-const LAST = {sub:"#/", hw:"#/hw", coll:"#/coll", study:"#/study", stats:"#/stats", goals:"#/goals", marks:"#/marks", an:"#/an", manual:"#/manual",
+const LAST = {sub:"#/", hw:"#/hw", ws:"#/ws", coll:"#/coll", study:"#/study", stats:"#/stats", goals:"#/goals", marks:"#/marks", an:"#/an", manual:"#/manual",
               ov:"#/ov", files:"#/files", settings:"#/settings"};
 function sectionOf(hash){
   const h = hash || location.hash;
@@ -6159,6 +6214,7 @@ function sectionOf(hash){
   if(h.startsWith("#/settings")) return "settings";
   if(h.startsWith("#/asy")) return "asy:"+((h.split("/")[2])||"overview");
   if(h.startsWith("#/hw")) return "hw";
+  if(h.startsWith("#/ws")) return "ws";
   if(h.startsWith("#/coll")) return "coll";
   if(h.startsWith("#/study")) return "study";
   if(h.startsWith("#/stats")) return "stats";
@@ -6263,6 +6319,7 @@ function render(){
   if(r.s==="files"){ VIEW={name:"files", f:r.m||null}; setAccent(null); paintTabs(); fab.hidden=false; return viewFiles(r.m||null); }
   if(r.s==="settings"){ VIEW={name:"settings"}; setAccent(null); paintTabs(); fab.hidden=true; return viewSettings(r.m||""); }
 
+  if(r.s==="ws"){ VIEW={name:"ws"}; setAccent(null); paintTabs(); fab.hidden=true; return viewWorksheets(); }
   if(r.s==="hw"){ VIEW={name:"hw"}; setAccent(null); paintTabs(); fab.hidden=false; return viewHomework(); }
   if(r.s==="study"){ VIEW={name:"study"}; setAccent(null); paintTabs(); fab.hidden=true; return viewStudy(); }
   if(r.s==="stats"){ VIEW={name:"stats"}; setAccent(null); paintTabs(); fab.hidden=false; return viewStats(); }
@@ -6360,7 +6417,7 @@ function viewModule(sc,m){
 function viewChapter(sc,m,ch){
   const d = subjOf(sc), mo = modOf(sc,m);
   crumbs([{label:"Home",href:"#/"},{label:d.short,href:`#/${sc}`},{label:mo.name,href:`#/${sc}/${m}`},{label:chTitle(ch)}]);
-  const cards = exList(sc,ch).map(e=>{
+  const card = e=>{
     const n = qCount(sc,ch,e.code), st = exStats(sc,ch,e.code);
     const a = S.d[key(sc,ch.no,e.code)]||[];
     let cells="";
@@ -6373,10 +6430,15 @@ function viewChapter(sc,m,ch){
       <div class="ex-sub">${esc(e.tag)} · ${n?n+" questions":"no questions set"}</div></div>
       ${n?`<span class="pct ${pct(st)?"":"zero"}">${pct(st)}%</span>`:""}</div>
       ${n?`<div class="mosaic">${cells}</div>${statLine(st)}`:`<div class="card-note">Open it to say how many questions it has.</div>`}</a>`;
-  }).join("");
+  };
+  const all = exList(sc,ch), cards = all.filter(e=>!e.ws).map(card).join(""), sheets = all.filter(e=>e.ws).map(card).join("");
+  const mix = typeof wsIsMix==="function" && wsIsMix(sc, ch.no);
   app.innerHTML = recBanner() + `<div class="pagehead"><div class="eyebrow">${esc(d.name)} · ${esc(mo.name)}</div>
       <h1>${esc(chTitle(ch))}</h1>${statLine(chapStats(sc,ch))}</div>
-    ${cards?`<div class="grid g2">${cards}</div>`:`<div class="empty">No exercises here yet — use the button above.</div>`}`;
+    ${mix ? "" : cards?`<div class="grid g2">${cards}</div>`:`<div class="empty">No exercises here yet — use the button above.</div>`}
+    <div class="ws-sec"><div class="ovh"><b>DPPs &amp; worksheets</b><span class="spacer"></span><button class="tbtn" id="chWsAdd">＋ Add one</button><a class="tbtn" href="#/ws">Catalogue</a></div>
+      ${sheets?`<div class="grid g2">${sheets}</div>`:`<div class="hint" style="margin:4px 0 0">None for this chapter yet.</div>`}</div>`;
+  document.getElementById("chWsAdd").onclick = ()=>openSheetForm(null, {sc, ch: mix ? "mix" : String(ch.no)});
 }
 
 /* ============================================================
@@ -6408,7 +6470,7 @@ function viewExercise(sc,m,ch,code){
   const arr = arrFor(sc,ch.no,code,n);
   ctx = {sc, ch, code, arr, n, hw:hwIndexSet(sc,ch.no,code)};
 
-  app.innerHTML = recBanner() + `<div class="pagehead"><div class="eyebrow">${esc(chTitle(ch))} · ${esc(ex.tag)}</div>
+  app.innerHTML = recBanner() + `<div class="pagehead"><div class="eyebrow">${esc(chTitle(ch))} · ${ex.ws?`<a href="#/ws" style="color:inherit">${esc(ex.tag)}</a>`:esc(ex.tag)}${ex.ws&&ex.ws.d?` · ${esc(wsDate(ex.ws.d))}`:""}${ex.ws&&ex.ws.src?` · ${esc(ex.ws.src)}`:""}</div>
       <h1>${esc(ex.name)}</h1><div id="exStats">${statLine(exStats(sc,ch,code))}</div></div>
     <div class="toolbar">
       <div class="field"><label for="fStatus">Show</label><select id="fStatus">
@@ -11326,7 +11388,7 @@ function performMerge(sc, targetNo, sources, finish){
           let n = 1; destCode = srcCode+"x"+n;
           while(exOf(sc, targetCh, destCode)) destCode = srcCode+"x"+(++n);
         }
-        (S.x.exs[sc+"|"+targetNo] = S.x.exs[sc+"|"+targetNo]||[]).push({code:destCode, name:srcEx.name});
+        (S.x.exs[sc+"|"+targetNo] = S.x.exs[sc+"|"+targetNo]||[]).push({code:destCode, name:srcEx.name, ...(srcEx.ws?{ws:{...srcEx.ws}}:{})});
         buildTree(); targetCh = chapOf(sc, targetNo);
       }
       map[srcCode] = destCode;
@@ -12094,13 +12156,13 @@ function bulkMoveDialog(){
 }
 /* relocates one exercise's definition and every bit of recorded data to a
    different chapter, picking a fresh code if the destination already uses it */
-function moveExercise(sc, fromNo, code, toNo){
+function moveExercise(sc, fromNo, code, toNo, wantCode){
   const fromCh = chapOf(sc, fromNo), toCh = chapOf(sc, toNo);
   const ex = exOf(sc, fromCh, code); if(!ex) return;
   const n = qCount(sc, fromCh, code);
-  let destCode = code, k=1;
+  let destCode = wantCode || code, k=1;
   while(exOf(sc, toCh, destCode)) destCode = code+(k++);
-  (S.x.exs[sc+"|"+toNo] = S.x.exs[sc+"|"+toNo]||[]).push({code:destCode, name:ex.name});
+  (S.x.exs[sc+"|"+toNo] = S.x.exs[sc+"|"+toNo]||[]).push({code:destCode, name:ex.name, ...(ex.ws?{ws:{...ex.ws}}:{})});
   if(n){
     const arr = arrFor(sc, fromNo, code, n);
     const dest = arrFor(sc, toNo, destCode, n);
@@ -12155,7 +12217,7 @@ function pasteClipboard(v){
       let destCode = code, k=1;
       while(exOf(v.s, destCh, destCode)) destCode = code+(k++);
       const n = qCount(v.s, fromCh, code);
-      (S.x.exs[v.s+"|"+v.c] = S.x.exs[v.s+"|"+v.c]||[]).push({code:destCode, name:ex.name});
+      (S.x.exs[v.s+"|"+v.c] = S.x.exs[v.s+"|"+v.c]||[]).push({code:destCode, name:ex.name, ...(ex.ws?{ws:{...ex.ws}}:{})});
       if(n){
         const from = arrFor(v.s, src, code, n), to = arrFor(v.s, v.c, destCode, n);
         for(let i=0;i<n;i++){
@@ -13406,7 +13468,7 @@ let ASYAPI = null, asyFrame = null, plannerWant = null, plannerQuiet = 0, JOIN_N
 
 /* ---------- the sidebar ---------- */
 const SIDE = {
-  bt:[["#/ov","Overview","◈","ov"],["#/","Subjects","▤","sub"],["#/hw","Homework","✎","hw"],["#/coll","Collections","★","coll"],
+  bt:[["#/ov","Overview","◈","ov"],["#/","Subjects","▤","sub"],["#/hw","Homework","✎","hw"],["#/ws","DPPs & worksheets","▧","ws"],["#/coll","Collections","★","coll"],
       ["#/study","Study log","◷","study"],["#/stats","Statistics","▦","stats"],["#/goals","Goals","◎","goals"],
       ["#/marks","Marks","▥","marks"],["#/an","Analysis","⌕","an"],["#/files","Files","▣","files"]],
   asy:[["overview","Overview","∇"],["syllabus","Syllabus","∫"],["revision","Revision","∮"],["day","Day planner","∂"],
@@ -14030,6 +14092,201 @@ function viewOverview(){
       <div class="panel"><div class="ovh"><b>Weakest chapters</b><a class="tbtn" href="#/stats">Chapter wise analysis</a></div>${weak}</div>
       <div class="panel"><div class="ovh"><b>Latest tests</b><a class="tbtn" href="#/an">Analysis</a></div>${testHTML}</div>
     </div>`;
+}
+
+/* ============================================================
+   36. DPPs & WORKSHEETS — one catalogue for every sheet. Each sheet is an
+   exercise in its chapter (so ticks, stats, wrong records and revision all
+   work as usual); it carries a ws record that puts it in the catalogue.
+   ============================================================ */
+let wsView = {kind:"", s:"", st:"all", q:"", group:"chapter"};
+function wsKinds(){ if(!Array.isArray(S.x.wsKinds) || !S.x.wsKinds.length) S.x.wsKinds = ["DPP","Worksheet"]; return S.x.wsKinds; }
+const wsKindColor = k => { const i = wsKinds().indexOf(k); return ["#4cc9f0","#ffa94d","#63e6be","#f783ac","#ffd43b","#9775fa"][(i<0?0:i)%6]; };
+const wsIsMix = (sc, no) => !!(S.x.wsMix && S.x.wsMix[sc]!==undefined && String(S.x.wsMix[sc])===String(no));
+function wsAll(){
+  const out = [];
+  TREE.order.forEach(sc=>{ const sub = subjOf(sc);
+    sub.order.forEach(m=>sub.modules[m].chapters.forEach(ch=>ch.exs.forEach(e=>{
+      if(e.ws) out.push({sc, m, ch, e, ws:e.ws, st:exStats(sc,ch,e.code)}); }))); });
+  return out;
+}
+const wsRaw = (sc,cno,code) => (S.x.exs[sc+"|"+cno]||[]).find(x=>x.code===code);
+function wsStatus(x){ return !x.st.n ? "empty" : x.st.done===0 ? "new" : x.st.done>=x.st.n ? "done" : "part"; }
+/* sheets that cover several chapters live in one chapter of their own per subject */
+function wsMixedChapter(sc){
+  S.x.wsMix = S.x.wsMix || {};
+  if(S.x.wsMix[sc]!==undefined && chapOf(sc, S.x.wsMix[sc])) return S.x.wsMix[sc];
+  const id = nextModuleId(sc);
+  (S.x.mods[sc] = S.x.mods[sc]||[]).push({id, name:"Mixed DPPs & worksheets"});
+  buildTree();
+  const no = nextChapterNo(sc);
+  (S.x.chs[sc+"|"+id] = S.x.chs[sc+"|"+id]||[]).push({no, name:"Mixed chapters"});
+  S.x.wsMix[sc] = no; buildTree();
+  return no;
+}
+const wsWhere = x => wsIsMix(x.sc, x.ch.no) ? "Mixed chapters" : chTitle(x.ch);
+const wsDate = d => d ? new Date(d+"T00:00").toLocaleDateString(undefined,{day:"numeric",month:"short",year:"numeric"}) : "";
+
+function viewWorksheets(){
+  crumbs([{label:"Home",href:"#/"},{label:"DPPs & worksheets"}]);
+  const all = wsAll(), kinds = wsKinds(), V = wsView, q = V.q.trim().toLowerCase();
+  const list = all.filter(x=>(!V.kind || x.ws.k===V.kind) && (!V.s || x.sc===V.s)
+    && (V.st==="all" || wsStatus(x)===V.st)
+    && (!q || (x.e.name+" "+wsWhere(x)+" "+(x.ws.src||"")+" "+x.ws.k).toLowerCase().includes(q)));
+  const tot = all.reduce((a,x)=>{ a.n += x.st.n; a.d += x.st.done; a.done += wsStatus(x)==="done"?1:0; return a; }, {n:0,d:0,done:0});
+  /* grouping */
+  const groups = new Map();
+  const put = (k, label, sortKey, x) => { if(!groups.has(k)) groups.set(k, {label, sortKey, items:[]}); groups.get(k).items.push(x); };
+  list.forEach(x=>{
+    if(V.group==="date"){ const d = x.ws.d || ""; const k = d.slice(0,7) || "none";
+      put(k, d ? new Date(d+"T00:00").toLocaleDateString(undefined,{month:"long",year:"numeric"}) : "No date", d ? "0"+(9999-Number(d.slice(0,4)))+(99-Number(d.slice(5,7))) : "9", x); }
+    else if(V.group==="type") put(x.ws.k, x.ws.k, String(kinds.indexOf(x.ws.k)).padStart(3,"0"), x);
+    else { const sub = subjOf(x.sc);
+      put(x.sc+"|"+x.ch.no, sub.short+" · "+wsWhere(x),
+          String(TREE.order.indexOf(x.sc)).padStart(2,"0")+(wsIsMix(x.sc,x.ch.no)?"z":"a")+String(x.ch.label??x.ch.no).padStart(5,"0"), x); }
+  });
+  const gs = [...groups.values()].sort((a,b)=>a.sortKey<b.sortKey?-1:a.sortKey>b.sortKey?1:0);
+  const row = x=>{
+    const sub = subjOf(x.sc), s = x.st, p = pct(s), a = acc(s), kc = wsKindColor(x.ws.k);
+    const meta = [V.group==="chapter" ? "" : sub.short+" · "+wsWhere(x), wsDate(x.ws.d), x.ws.src||""].filter(Boolean).join(" · ");
+    return `<div class="wsrow" data-wsgo="#/${x.sc}/${x.m}/${x.ch.no}/${x.e.code}" style="--sc:${esc(sub.accent)}" tabindex="0">
+      <span class="td-lab" style="--lc:${esc(kc)}">${esc(x.ws.k)}</span>
+      <span class="ws-name"><b>${esc(x.e.name)}</b>${meta?`<small>${esc(meta)}</small>`:""}</span>
+      <span class="ws-bar" title="${s.done} of ${s.n} done"><i style="width:${p}%"></i></span>
+      <span class="ws-num">${s.n ? `${s.done}/${s.n}${a===null?"":` · <span style="color:${a>=70?"var(--ok)":a>=40?"var(--flag)":"var(--no)"}">${a}%</span>`}` : `<span class="hint" style="margin:0">no count</span>`}</span>
+      <span class="ws-acts"><button class="pen" data-wsedit="${x.sc}|${x.ch.no}|${esc(x.e.code)}" title="Edit">✎</button><button class="x" data-wsdel="${x.sc}|${x.ch.no}|${esc(x.e.code)}" title="Delete">×</button></span>
+    </div>`; };
+  const chip = (val, cur, label, attr, dot) => `<button class="actbtn ${cur===val?"on":""}" ${attr}="${esc(val)}">${dot?`<i style="background:${esc(dot)}"></i>`:""}${esc(label)}</button>`;
+  app.innerHTML = recBanner() + `<div class="pagehead"><div class="eyebrow">Catalogue</div><h1>DPPs &amp; worksheets</h1>
+      <div class="stats"><span><span class="k">sheets</span> <b>${all.length}</b></span><span><span class="k">finished</span> <b>${tot.done}</b></span>
+      <span><span class="k">questions done</span> <b>${tot.d}</b>/${tot.n}</span></div></div>
+    <div class="hwrow" style="margin-bottom:12px;flex-wrap:wrap"><button class="btn primary" id="wsAdd">＋ Add a sheet</button>
+      <input class="tin" id="wsQ" placeholder="Search sheets, chapters, sources" value="${esc(V.q)}" style="flex:1;min-width:200px">
+      <div class="field"><label for="wsGroup">Group by</label><select id="wsGroup">${[["chapter","Chapter"],["date","Month"],["type","Type"]].map(([v,l])=>`<option value="${v}"${V.group===v?" selected":""}>${l}</option>`).join("")}</select></div></div>
+    <div class="hwrow" style="margin-bottom:6px;flex-wrap:wrap">${chip("",V.kind,"All types","data-wskind")}${kinds.map(k=>chip(k,V.kind,k,"data-wskind",wsKindColor(k))).join("")}<button class="tbtn" id="wsKinds">Edit types</button></div>
+    <div class="hwrow" style="margin-bottom:14px;flex-wrap:wrap">${chip("",V.s,"All subjects","data-wss")}${TREE.order.map(sc=>chip(sc,V.s,subjOf(sc).short,"data-wss",subjOf(sc).accent)).join("")}
+      <span class="spacer"></span>${[["all","Any status"],["new","Not started"],["part","In progress"],["done","Finished"]].map(([v,l])=>chip(v,V.st,l,"data-wsst")).join("")}</div>
+    ${!all.length ? `<div class="empty">No sheets yet. Add your first DPP or worksheet — it gets a question table like any exercise, filed under its chapter and listed here.</div>`
+      : !list.length ? `<div class="empty">No sheets match these filters.</div>`
+      : gs.map(g=>`<div class="ws-group"><div class="blabel">${esc(g.label)} <span class="hint" style="margin:0">· ${g.items.length}</span></div>
+          <div class="panel ws-list">${g.items.sort((a,b)=>(a.ws.d||"")<(b.ws.d||"")?-1:(a.ws.d||"")>(b.ws.d||"")?1:a.e.name.localeCompare(b.e.name,undefined,{numeric:true})).map(row).join("")}</div></div>`).join("")}`;
+  const $ = id=>document.getElementById(id);
+  $("wsAdd").onclick = ()=>openSheetForm(null);
+  $("wsKinds").onclick = openWsKinds;
+  $("wsGroup").onchange = e=>{ V.group = e.target.value; viewWorksheets(); };
+  const qi = $("wsQ"); qi.oninput = ()=>{ V.q = qi.value; const pos = qi.selectionStart; viewWorksheets(); const n = $("wsQ"); n.focus(); n.setSelectionRange(pos,pos); };
+  app.querySelectorAll("[data-wskind]").forEach(b=>b.onclick = ()=>{ V.kind = b.dataset.wskind; viewWorksheets(); });
+  app.querySelectorAll("[data-wss]").forEach(b=>b.onclick = ()=>{ V.s = b.dataset.wss; viewWorksheets(); });
+  app.querySelectorAll("[data-wsst]").forEach(b=>b.onclick = ()=>{ V.st = b.dataset.wsst; viewWorksheets(); });
+  app.querySelectorAll("[data-wsgo]").forEach(r=>{
+    r.onclick = e=>{ if(e.target.closest("button")) return; location.hash = r.dataset.wsgo; };
+    r.onkeydown = e=>{ if(e.key==="Enter" && e.target===r) location.hash = r.dataset.wsgo; }; });
+  app.querySelectorAll("[data-wsedit]").forEach(b=>b.onclick = ()=>{ const [sc,no,code] = b.dataset.wsedit.split("|"); openSheetForm({sc, no:Number(no), code}); });
+  app.querySelectorAll("[data-wsdel]").forEach(b=>b.onclick = async ()=>{
+    const [sc,no,code] = b.dataset.wsdel.split("|"), ch = chapOf(sc,no), ex = ch && exOf(sc,ch,code); if(!ex) return;
+    if(!await ask("Delete "+ex.name+"?", "Its question table and everything you recorded on it go too. Undo brings it back.", "Delete sheet", true)) return;
+    snapshot("delete a sheet"); deleteExerciseSilently(sc, Number(no), code);
+    buildTree(); markDirty(); viewWorksheets(); toastUndo("Sheet deleted"); });
+}
+
+/* add a sheet, or edit one: ed = {sc, no, code} */
+function openSheetForm(ed, preset){
+  const kinds = wsKinds(), raw = ed ? wsRaw(ed.sc, ed.no, ed.code) : null;
+  if(ed && !raw) return;
+  const P = preset || {};
+  const f = { k: raw ? raw.ws.k : (P.k || wsView.kind || kinds[0]), sc: ed ? ed.sc : (P.sc || wsView.s || TREE.order[0]),
+              ch: ed ? (wsIsMix(ed.sc, ed.no) ? "mix" : String(ed.no)) : (P.ch || ""),
+              name: raw ? raw.name : "", auto: !raw, n: ed ? (qCount(ed.sc, chapOf(ed.sc,ed.no), ed.code)||"") : "",
+              d: raw ? (raw.ws.d||"") : todayKey(), src: raw ? (raw.ws.src||"") : (P.src||"") };
+  const autoName = ()=>{
+    const same = wsAll().filter(x=>x.ws.k===f.k && x.sc===f.sc && (f.ch==="mix" ? wsIsMix(x.sc,x.ch.no) : String(x.ch.no)===f.ch)).length;
+    return f.k+" "+(same+1); };
+  if(f.auto) f.name = autoName();
+  onEsc = ()=>{};
+  const draw = ()=>{
+    const chs = allChapters(f.sc).filter(c=>!wsIsMix(f.sc,c.no));
+    if(f.ch && f.ch!=="mix" && !chs.some(c=>String(c.no)===f.ch)) f.ch = "";
+    paintModal("wsform", `<h3>${ed?"Edit sheet":"Add a DPP or worksheet"}</h3>
+      <p>${ed?"Changes keep everything you recorded on it.":"It gets a question table like any exercise, filed under its chapter and listed in the catalogue."}</p>
+      <div class="ws-form">
+        <label class="block"><span class="blabel">Type</span><select id="wfK">${kinds.map(k=>`<option${k===f.k?" selected":""}>${esc(k)}</option>`).join("")}<option value="__new">＋ New type…</option></select></label>
+        <label class="block"><span class="blabel">Name</span><input class="tin" id="wfName" value="${esc(f.name)}" placeholder="e.g. DPP 4"></label>
+        <label class="block"><span class="blabel">Subject</span><select id="wfS" ${ed?"disabled title=\"A sheet stays in its subject\"":""}>${TREE.order.map(sc=>`<option value="${sc}"${sc===f.sc?" selected":""}>${esc(subjOf(sc).name)}</option>`).join("")}</select></label>
+        <label class="block"><span class="blabel">Chapter</span><select id="wfC"><option value="">Choose a chapter…</option><option value="mix"${f.ch==="mix"?" selected":""}>Mixed — covers several chapters</option>${chs.map(c=>`<option value="${c.no}"${String(c.no)===f.ch?" selected":""}>${esc(chTitle(c))}</option>`).join("")}</select></label>
+        <label class="block"><span class="blabel">Questions</span><input class="tin" id="wfN" type="number" min="1" max="2000" value="${esc(String(f.n))}" placeholder="e.g. 20"></label>
+        <label class="block"><span class="blabel">Date</span><input class="tin" id="wfD" type="date" value="${esc(f.d)}"></label>
+        <label class="block" style="grid-column:1/-1"><span class="blabel">Source <span class="hint" style="margin:0">(optional)</span></span><input class="tin" id="wfSrc" value="${esc(f.src)}" placeholder="e.g. coaching, school, a teacher's name"></label>
+      </div>
+      <div class="msg bad" id="wfMsg"></div>
+      <div class="acts"><button class="btn" id="wfNo">Cancel</button><button class="btn primary" id="wfOk">${ed?"Save":"Add sheet"}</button></div>`);
+    const m = id=>modal.querySelector(id);
+    const read = ()=>{ f.name = m("#wfName").value; f.n = m("#wfN").value; f.d = m("#wfD").value; f.src = m("#wfSrc").value; };
+    m("#wfName").oninput = ()=>{ f.auto = false; };
+    m("#wfK").onchange = async e=>{ read();
+      if(e.target.value==="__new"){ const v = await prompt2("New sheet type","Like Assignment, Exercise sheet or Test paper.","Type name","",{ok:"Add type"});
+        onEsc = ()=>{}; const nm = v && String(v).trim(); if(nm && !kinds.includes(nm)){ kinds.push(nm); markDirty(); } if(nm) f.k = nm; }
+      else f.k = e.target.value;
+      if(f.auto) f.name = autoName(); draw(); };
+    m("#wfS").onchange = e=>{ read(); f.sc = e.target.value; f.ch = ""; if(f.auto) f.name = autoName(); draw(); };
+    m("#wfC").onchange = e=>{ read(); f.ch = e.target.value; if(f.auto) f.name = autoName(); draw(); };
+    m("#wfNo").onclick = ()=>closeModal();
+    m("#wfOk").onclick = ()=>{
+      read();
+      const msg = m("#wfMsg"), name = f.name.trim(), n = parseInt(f.n,10);
+      if(!f.ch){ msg.textContent = "Pick the chapter it belongs to, or Mixed."; return; }
+      if(!name){ msg.textContent = "Give it a name."; return; }
+      if(f.n!=="" && !(n>0 && n<=2000)){ msg.textContent = "Questions should be a number between 1 and 2000."; return; }
+      const ws = {k:f.k, d:f.d||"", src:f.src.trim()};
+      if(!ed){
+        snapshot("add a sheet");
+        const cno = f.ch==="mix" ? wsMixedChapter(f.sc) : Number(f.ch), ch = chapOf(f.sc, cno), code = freeExCode(ch);
+        if(!code){ msg.textContent = "That chapter cannot hold any more exercises."; return; }
+        (S.x.exs[f.sc+"|"+cno] = S.x.exs[f.sc+"|"+cno]||[]).push({code, name, ws});
+        if(n>0) S.x.cnt[key(f.sc,cno,code)] = n;
+        buildTree(); markDirty(); closeModal(); render(); toastUndo(name+" added");
+        return;
+      }
+      const oldCh = chapOf(ed.sc, ed.no), oldN = qCount(ed.sc, oldCh, ed.code);
+      if(n>0 && n<oldN){ const a = S.d[key(ed.sc,ed.no,ed.code)]||[];
+        if(a.slice(n, oldN).some(v=>v)){ msg.textContent = "Questions past "+n+" have ticks on them — clear them first if you want fewer."; return; } }
+      snapshot("edit a sheet");
+      raw.name = name; raw.ws = ws;
+      if(n>0) S.x.cnt[key(ed.sc,ed.no,ed.code)] = n;
+      const destNo = f.ch==="mix" ? wsMixedChapter(ed.sc) : Number(f.ch);
+      if(String(destNo)!==String(ed.no)){
+        buildTree();
+        const code = freeExCode(chapOf(ed.sc, destNo));
+        if(code) moveExercise(ed.sc, ed.no, ed.code, destNo, code);
+      }
+      buildTree(); markDirty(); closeModal(); render(); toastUndo("Sheet saved");
+    };
+  };
+  draw();
+}
+function openWsKinds(){
+  onEsc = ()=>{};
+  const draw = ()=>{
+    const kinds = wsKinds(), used = k => wsAll().filter(x=>x.ws.k===k).length;
+    paintModal("wskinds", `<h3>Sheet types</h3><p>Renaming a type renames it on every sheet. A type in use can't be deleted.</p>
+      <div class="opts">${kinds.map((k,i)=>`<div class="opt" style="cursor:default;align-items:center;gap:8px">
+        <i style="width:10px;height:10px;border-radius:99px;background:${wsKindColor(k)};display:inline-block"></i>
+        <input class="tin" data-wkn="${i}" value="${esc(k)}" style="flex:1"><span class="hint" style="margin:0">${used(k)}</span>
+        <button class="x" data-wkx="${i}" title="${used(k)?"In use":"Delete"}" ${used(k)||kinds.length<2?"disabled":""}>×</button></div>`).join("")}</div>
+      <div class="hwrow" style="margin-top:10px"><input class="tin" id="wkNew" placeholder="New type, e.g. Assignment" style="flex:1"><button class="tbtn" id="wkAdd">Add</button></div>
+      <div class="acts"><button class="btn primary" id="wkDone">Done</button></div>`);
+    modal.querySelectorAll("[data-wkn]").forEach(inp=>inp.onchange = ()=>{
+      const i = Number(inp.dataset.wkn), old = kinds[i], v = inp.value.trim(); if(!v || kinds.includes(v)) { inp.value = old; return; }
+      snapshot("rename a sheet type"); kinds[i] = v;
+      Object.values(S.x.exs).forEach(arr=>arr.forEach(e=>{ if(e.ws && e.ws.k===old) e.ws.k = v; }));
+      if(wsView.kind===old) wsView.kind = v; buildTree(); markDirty(); draw(); });
+    modal.querySelectorAll("[data-wkx]").forEach(b=>b.onclick = ()=>{ const k = kinds[Number(b.dataset.wkx)]; if(used(k)) return;
+      kinds.splice(Number(b.dataset.wkx),1); if(wsView.kind===k) wsView.kind = ""; markDirty(); draw(); });
+    const add = ()=>{ const v = modal.querySelector("#wkNew").value.trim(); if(!v || kinds.includes(v)) return; kinds.push(v); markDirty(); draw(); };
+    modal.querySelector("#wkAdd").onclick = add;
+    modal.querySelector("#wkNew").onkeydown = e=>{ if(e.key==="Enter"){ e.preventDefault(); add(); } };
+    modal.querySelector("#wkDone").onclick = ()=>{ closeModal(); if(VIEW.name==="ws") viewWorksheets(); };
+  };
+  draw();
 }
 
 
