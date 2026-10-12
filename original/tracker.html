@@ -1350,6 +1350,15 @@ hr.sep{ border:0; border-top:1px solid var(--line); margin:14px 0; }
 .rt-ver{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin:8px 0 4px; padding:8px 12px; border:1px solid rgba(var(--acc-rgb),.3); border-radius:10px; background:rgba(var(--acc-rgb),.05); font-size:13.5px; }
 .rt-ver.dim{ border-color:var(--line); background:none; padding:4px 2px; }
 .rt-ver .m{ color:var(--acc); }
+.fork > .brs > .bcol{ align-self:stretch; }
+.bcol .bfill{ flex:1; width:0; min-height:10px; border-left:1.5px solid rgba(var(--acc-rgb),.35); }
+.bcol .bfoot{ position:relative; align-self:stretch; height:18px; margin:0 -18px; }
+.bcol .bfoot::before{ content:""; position:absolute; bottom:0; left:0; right:0; border-bottom:1.5px solid rgba(var(--acc-rgb),.35); }
+.bcol:first-child .bfoot::before{ left:50%; } .bcol:last-child .bfoot::before{ right:50%; } .bcol:only-child .bfoot::before{ display:none; }
+.bcol .bfoot::after{ content:""; position:absolute; top:0; bottom:0; left:50%; border-left:1.5px solid rgba(var(--acc-rgb),.35); }
+.fork > .brs:has(.bfoot){ align-items:stretch; }
+.merge-node .m{ color:var(--rev); }
+.merge-add{ display:flex; justify-content:center; margin-top:14px; }
 .daychecks{ display:flex; flex-wrap:wrap; gap:6px; }
 .daychecks .fchip{ cursor:pointer; }
 
@@ -1638,6 +1647,10 @@ body::after{ content:""; position:fixed; inset:0; pointer-events:none; z-index:0
 .rs-it.revblk{ cursor:pointer; background:color-mix(in srgb, var(--rev) 16%, #0b1120); border:1px solid rgba(255,122,217,.6); color:#ffe0f5; box-shadow:0 0 12px rgba(255,122,217,.2); }
 .rs-it.revblk:hover{ box-shadow:0 0 20px rgba(255,122,217,.45); }
 .rs-it.revblk em{ margin-left:auto; font-style:normal; font-size:11.5px; font-weight:600; color:var(--rev); }
+.rs-fill{ position:absolute; left:0; right:0; z-index:0; background:repeating-linear-gradient(135deg, rgba(255,122,217,.34) 0 5px, rgba(255,122,217,.16) 5px 10px); border-top:1px solid rgba(255,122,217,.7); font-style:normal; font-size:10.5px; color:#ffe0f5; padding:1px 8px; text-align:right; overflow:hidden; white-space:nowrap; pointer-events:none; }
+.rs-it > b, .rs-it > span, .rs-it > em{ position:relative; z-index:1; }
+.rs-it.revblk.full{ border-style:dashed; }
+.rs-it.revblk.full em{ color:color-mix(in srgb, var(--rev) 60%, #fff); opacity:.85; }
 .rs-it.revblk.on{ border-color:var(--rev); box-shadow:0 0 0 2px rgba(255,122,217,.6), 0 0 24px rgba(255,122,217,.5); }
 .rs-sel{ position:absolute; left:0; right:0; border-radius:7px; padding:2px 8px; font-size:12px; color:#fff; background:rgba(255,122,217,.25); border:1.5px solid var(--rev); box-shadow:0 0 18px rgba(255,122,217,.55); pointer-events:none; animation:popIn .25s var(--ease-spring); z-index:2; }
 .rv-time{ gap:10px; align-items:flex-end; } .rv-time .fld{ min-width:120px; }
@@ -2434,14 +2447,16 @@ function routineFrom(){ return S.cfg.startDate ? addDays(S.cfg.startDate, -7) : 
 function routePath(date){
   const f = dayFacts(date), blocks = [], forks = [];
   if (date < routineFrom()) return { blocks, forks };
-  let n = treeAt(routineKey(date), date);
-  while (n) {
+  const walk = n => {
+    if (!n) return;
     n.blocks.forEach(b => blocks.push(b));
-    if (!n.fork) break;
+    if (!n.fork) return;
     const br = n.fork.branches.find(b => branchApplies(b, f)) || null;
     forks.push({ fork:n.fork, chosen:br });
-    n = br ? br.node : null;
-  }
+    if (br) walk(br.node);
+    walk(n.fork.then);              /* every branch joins back here */
+  };
+  walk(treeAt(routineKey(date), date));
   return { blocks, forks };
 }
 function dayBlocks(date, expand = true){
@@ -2670,7 +2685,7 @@ const keyShort = k => isSp(k) ? (spOf(k)?.name || 'Special') : WD[k];
 const parseKey = v => isSp(String(v)) ? String(v) : +v;
 function getNode(day, path){
   let n = treeFor(day); const parts = path.split('.').slice(1);
-  for (const p of parts) n = n.fork.branches[+p].node;
+  for (const p of parts) n = p === 'm' ? n.fork.then : n.fork.branches[+p].node;
   return n;
 }
 function seqStart(day, path){
@@ -2678,23 +2693,43 @@ function seqStart(day, path){
   if (n.blocks.length) return n.blocks[0].start;
   if (path === 'r') return '06:00';
   const parent = path.split('.').slice(0,-1).join('.');
+  if (path.endsWith('.m')) { const pn = getNode(day, parent), pe = mins(seqEnd(day, parent));
+    return hm(Math.max(pe, ...pn.fork.branches.map((br, bi) => nodeEnd(br.node, mins(seqStart(day, parent + '.' + bi)))))); }
   return seqEnd(day, parent);
 }
 function seqEnd(day, path){
   const n = getNode(day, path);
   return n.blocks.length ? hm(bEnd(n.blocks[n.blocks.length-1])) : seqStart(day, path);
 }
+/* when a node's whole run ends: its blocks, then the longest branch, then the merged part after the branches */
+function nodeEnd(n, s){
+  let e = n.blocks.length ? bEnd(n.blocks[n.blocks.length-1]) : s;
+  if (n.fork) { const be = Math.max(e, ...n.fork.branches.map(br => nodeEnd(br.node, e))); e = n.fork.then ? nodeEnd(n.fork.then, be) : be; }
+  return e;
+}
 function setStart(node, startMin){
   let e = startMin;
   node.blocks.forEach(b => { b.start = hm(e); e = bEnd(b); });
-  if (node.fork) node.fork.branches.forEach(br => setStart(br.node, e));
+  if (node.fork) { node.fork.branches.forEach(br => setStart(br.node, e)); mergeAfter(node.fork, e); }
+}
+/* the merged part waits for the longest branch; a gap you left before it is kept */
+function mergeAfter(fork, from){
+  if (!fork.then) return;
+  const be = Math.max(from, ...fork.branches.map(br => nodeEnd(br.node, from)));
+  const t = fork.then, s = t.blocks.length ? mins(t.blocks[0].start) : be;
+  setStart(t, Math.max(s, be));
+}
+function reflowMerges(n, s){
+  if (!n) return; const e = n.blocks.length ? bEnd(n.blocks[n.blocks.length-1]) : s;
+  if (n.fork) { n.fork.branches.forEach(br => reflowMerges(br.node, e)); if (n.fork.then) { mergeAfter(n.fork, e); reflowMerges(n.fork.then, mins(n.fork.then.blocks[0]?.start || hm(e))); } }
 }
 function cascade(node, fromIdx){
   for (let i = Math.max(1, fromIdx+1); i < node.blocks.length; i++) node.blocks[i].start = hm(bEnd(node.blocks[i-1]));
-  if (node.fork && node.blocks.length) { const e = bEnd(node.blocks[node.blocks.length-1]); node.fork.branches.forEach(br => setStart(br.node, e)); }
+  if (node.fork && node.blocks.length) { const e = bEnd(node.blocks[node.blocks.length-1]); node.fork.branches.forEach(br => setStart(br.node, e)); mergeAfter(node.fork, e); }
+  const root = treeFor(V.rtDay); if (root) reflowMerges(root, mins(root.blocks[0]?.start || '06:00'));
 }
-function cloneNode(n){ return { blocks: n.blocks.map(b => ({ ...b, id:uid() })), fork: n.fork ? { branches: n.fork.branches.map(br => ({ ...br, id:uid(), node: cloneNode(br.node) })) } : null }; }
-function treeSize(n){ return n.blocks.length + (n.fork ? n.fork.branches.reduce((a,b) => a + treeSize(b.node), 0) : 0); }
+function cloneNode(n){ return { blocks: n.blocks.map(b => ({ ...b, id:uid() })), fork: n.fork ? { branches: n.fork.branches.map(br => ({ ...br, id:uid(), node: cloneNode(br.node) })), ...(n.fork.then ? { then: cloneNode(n.fork.then) } : {}) } : null }; }
+function treeSize(n){ return n.blocks.length + (n.fork ? n.fork.branches.reduce((a,b) => a + treeSize(b.node), 0) + (n.fork.then ? treeSize(n.fork.then) : 0) : 0); }
 /* one-time switch from the official-syllabus chapter list to the coaching chapter list */
 function migrateSyllabus(){
   if (S.syl.v === 2) return false;
@@ -3203,7 +3238,9 @@ function seqHTML(node, path){
     <div class="brs">${node.fork.branches.map((br, bi) => `<div class="bcol"><div class="bhead">
         <button class="cond ${br.when==='else'?'else':''} ${br.when==='custom'?'custom':''}" data-rcond="${path}|${bi}" title="Change condition"><span class="m">${br.when==='else'?'else':'if'}</span> ${esc(condLabel(br).replace(/^If /,''))}</button>
         <div class="bmenu"><button class="icon-btn ghost" title="Move left" data-rbmove="${path}|${bi}|-1" ${bi===0?'disabled':''}>‹</button><button class="icon-btn ghost" title="Copy this branch to other days" data-rbcopy="${path}|${bi}">⧉</button><button class="icon-btn ghost" title="Delete branch" data-rbdel="${path}|${bi}">×</button><button class="icon-btn ghost" title="Move right" data-rbmove="${path}|${bi}|1" ${bi===node.fork.branches.length-1?'disabled':''}>›</button></div></div>
-        <div class="vline short"></div>${seqHTML(br.node, path + '.' + bi)}</div>`).join('')}</div></div>` : '';
+        <div class="vline short"></div>${seqHTML(br.node, path + '.' + bi)}${node.fork.then ? '<div class="bfill"></div><div class="bfoot"></div>' : ''}</div>`).join('')}</div>
+    ${node.fork.then ? `<div class="vline"></div><div class="fork-node merge-node"><span class="m">⤓</span><span class="mute" style="font-size:13px">Branches join</span><button class="icon-btn ghost" data-runmerge="${path}" title="Remove the merge" aria-label="Remove the merge">×</button></div><div class="vline short"></div>${seqHTML(node.fork.then, path + '.m')}`
+      : node.fork.branches.length > 1 ? `<div class="merge-add"><button class="btn sm ghost" data-rmerge="${path}" title="Bring the branches back together: what you add here happens whichever branch was taken">⤓ Merge branches back</button></div>` : ''}</div>` : '';
   return `<div class="seq">${blocks}${acts}${fork}</div>`;
 }
 function tagRulesPanel(){
@@ -3359,6 +3396,16 @@ function openEvent(ev, preset = {}, occDate){
 
 /* ---------- revision editor ---------- */
 /* Revision scheduler: pick a date, then a time on that day's schedule — a free slot, or inside a Revision block */
+/* the revisions already sitting in a block: their slices, and the minutes they cover */
+function revFill(date, b, selfId){
+  const s0 = mins(b.start), e0 = bEnd(b), mixed = isMixed(b);
+  const list = revOn(date).filter(x => x.blk === b.id && x.id !== selfId).map(x => {
+    const s = mixed && x.start ? clamp(mins(x.start), s0, e0) : s0, e = mixed && x.end ? clamp(mins(x.end), s0, e0) : e0;
+    return { s, e, name: chapterById(x.ch)?.name || 'Revision', done: x.done };
+  }).filter(x => x.e > x.s).sort((p, q) => p.s - q.s);
+  let used = 0, cur = s0; list.forEach(x => { const a = Math.max(cur, x.s); if (x.e > a) { used += x.e - a; cur = x.e; } });
+  return { list, used, len: e0 - s0 };
+}
 const blkOn = (date, id) => id ? dayBlocks(date).find(b => b.id === id) || null : null;
 /* inside a block that is only partly revision, the revision takes a slice of it, not the whole block */
 const partRev = (date, id) => { const b = blkOn(date, id); return !!(b && isMixed(b)); };
@@ -3373,8 +3420,12 @@ function revStrip(date, st, selfId){
     const s0 = mins(i.start), e0 = mins(i.end) ?? s0 + 45;
     const blk = i.kind === 'bl' ? dayBlocks(date).find(b => b.id === i.id) : null;
     const rv = blk && isRevBlock(blk) && !i.brk, on = st.blk === i.id;
-    return `<div class="rs-it ${i.kind} ${rv?'revblk':''} ${on?'on':''} ${i.brk?'brk':''} ${i.cs && i.cs.length > 1 ? 'mix' : ''}" style="--c:${i.c}${mixVars(i.cs)};top:${y(s0)}px;height:${Math.max(16, (e0-s0)/60*H - 2)}px" ${rv?`data-rassign="${i.id}" title="Revise inside this block"`:''}>
-      <b>${esc(i.title)}</b><span>${i.start}–${i.end}</span>${rv ? `<em>${on ? '✓ Assigned here' : 'Assign here'}</em>` : ''}</div>`;
+    /* how much of a revision block other revisions already take */
+    const fill = rv ? revFill(date, blk, selfId) : null;
+    const slices = fill ? fill.list.map(x => `<i class="rs-fill" style="top:${(x.s - s0)/60*H}px;height:${Math.max(3, (x.e - x.s)/60*H - 1)}px" title="${esc(x.name)} ${hm(x.s)}–${hm(x.e)}">${(x.e - x.s)/60*H > 14 && (e0 - s0)/60*H > 40 ? esc(x.name) : ''}</i>`).join('') : '';
+    const label = !rv ? '' : on ? '✓ Assigned here' : !fill.used ? 'Assign here' : fill.used >= fill.len ? `Full${(e0 - s0)/60*H <= 40 ? ' (' + esc(fill.list.map(x => x.name).join(', ')) + ')' : ''} · add anyway` : `${durTxt(fill.len - fill.used)} free · Assign here`;
+    return `<div class="rs-it ${i.kind} ${rv?'revblk':''} ${on?'on':''} ${i.brk?'brk':''} ${i.cs && i.cs.length > 1 ? 'mix' : ''} ${fill && fill.used >= fill.len ? 'full' : ''}" style="--c:${i.c}${mixVars(i.cs)};top:${y(s0)}px;height:${Math.max(16, (e0-s0)/60*H - 2)}px" ${rv?`data-rassign="${i.id}" title="${fill.used ? `${durTxt(fill.used)} of ${durTxt(fill.len)} already taken by ${esc(fill.list.map(x => x.name).join(', '))}` : 'Revise inside this block'}"`:''}>
+      ${slices}<b>${esc(i.title)}</b><span>${i.start}–${i.end}</span>${rv ? `<em>${label}</em>` : ''}</div>`;
   }).join('');
   const sel = st.start && st.end && (!st.blk || partRev(date, st.blk)) ? `<div class="rs-sel" style="top:${y(mins(st.start))}px;height:${Math.max(14, (mins(st.end)-mins(st.start))/60*H)}px"><b>Revision</b> ${st.start}–${st.end}</div>` : '';
   return `<div class="rstrip-wrap"><div class="rstrip" data-gs="${gs}" data-h="${H}" style="height:${(ge-gs)*H}px">${rows}<div class="rs-lane">${blocks}${sel}</div></div></div>`;
@@ -3392,7 +3443,8 @@ function openRev(item, chId, queue){
     const clash = st.start && st.end && !st.blk ? itemsFor(st.date).filter(i => !(i.kind === 'rv' && i.id === it.id) && !i.brk && !studyIds.has(i.id) && !(i.kind === 'bl' && !countsStudy(dayBlocks(st.date).find(b => b.id === i.id) || {})) && mins(i.start) < em && (mins(i.end) ?? mins(i.start) + 45) > sm) : [];
     r.querySelector('#rvWhen').innerHTML = `
       <div class="row" style="gap:6px">${[['Today',0],['Tomorrow',1],['In 3 days',3],['In a week',7]].map(([l,n]) => `<button type="button" class="btn sm ${st.date===addDays(today(),n)?'pri':''}" data-quick="${n}">${l}</button>`).join('')}</div>
-      <div class="rv-pick-help">${dayRev.length ? `This day has ${dayRev.length} revision block${dayRev.length>1?'s':''} (pink “Assign here”). Put the revision inside one, or click any empty time to use a free slot.` : 'Click an empty time on the schedule to pick a free slot.'}</div>
+      <div class="rv-pick-help">${dayRev.length ? (() => { const fs = dayRev.map(b => revFill(st.date, b, it.id)), full = fs.filter(f => f.used >= f.len).length, part = fs.filter(f => f.used && f.used < f.len).length;
+        return `This day has ${dayRev.length} revision block${dayRev.length>1?'s':''} (pink “Assign here”)${full || part ? ` — ${[full ? `${full} already full` : '', part ? `${part} partly filled` : ''].filter(Boolean).join(', ')}; filled parts are shaded with the chapter names` : ''}. Put the revision inside one, or click any empty time to use a free slot.`; })() : 'Click an empty time on the schedule to pick a free slot.'}</div>
       ${revStrip(st.date, st, it.id)}
       <div class="row rv-time">${st.blk && partRev(st.date, st.blk) ? (() => { const b = blkOn(st.date, st.blk), maxL = bEnd(b) - mins(b.start);
           return `<span class="chip on-rev">Inside the ${esc(typeNames(b))} block (${b.start}–${hm(bEnd(b))})</span><label class="fld">From<input type="time" class="inp" id="rvStart" value="${st.start}" min="${b.start}" max="${hm(bEnd(b) - 5)}"></label><label class="fld">Length<select class="inp" id="rvDur">${[...new Set([15,30,45,60,75,90,120,150,180].filter(m => m < maxL).concat([maxL]))].sort((x, y) => x - y).map(m => `<option value="${m}" ${m===st.dur?'selected':''}>${m === maxL ? durTxt(m) + ' (whole block)' : durTxt(m)}</option>`).join('')}</select></label><span class="mute" style="align-self:end;padding-bottom:8px">until <b style="color:var(--ink)">${st.end}</b></span><button type="button" class="btn sm ghost" id="rvUnassign" style="align-self:end">Use a free slot instead</button>`; })()
@@ -4129,6 +4181,7 @@ function moveBlock(sp, si, tp, ti){
   tn.blocks.splice(clamp(ti, 0, tn.blocks.length), 0, blk);
   const anc = (a, b) => a === b || b.startsWith(a + '.');
   if (anc(tp, sp)) setStart(tn, tS); else if (anc(sp, tp)) setStart(sn, sS); else { setStart(sn, sS); setStart(tn, tS); }
+  { const root = treeFor(day); reflowMerges(root, mins(root.blocks[0]?.start || '06:00')); }
   touch('plan'); render(); toast('Block moved, times updated');
 }
 function insertBranch(root, nb){
@@ -4169,7 +4222,7 @@ function exampleDay(){
 document.addEventListener('click', e => {
   const dpb = e.target.closest('[data-datepick]'); if (dpb) { e.preventDefault(); openDP(dpb); return; }
   if (e.target.closest('.modal-bg')) return;
-  const t = e.target.closest('[data-go],[data-act],[data-subj],[data-exam],[data-toggle],[data-bump],[data-addsub],[data-delsub],[data-delch],[data-revexam],[data-tick],[data-addch],[data-editch],[data-revcancel],[data-revsort],[data-revset],[data-revedit],[data-dnav],[data-wnav],[data-mnav],[data-openday],[data-bdone],[data-item],[data-dayflag],[data-editday],[data-newev],[data-addextra],[data-unskip],[data-rtday],[data-spnew],[data-spdel],[data-spundate],[data-spfrom],[data-rblk],[data-radd],[data-rfork],[data-rcond],[data-rbadd],[data-rbdel],[data-rbmove],[data-rbcopy],[data-rtcopyday],[data-rtclear],[data-rtexample],[data-rtnowtoo],[data-openfile],[data-renfile],[data-delfile],[data-bdel],[data-revlog],[data-setcfg],[data-theme-pick],[data-pedit],[data-premove],[data-revgo],[data-selmode],[data-selq],[data-seltag],[data-pclose],[data-tagtoggle],[data-newtag],[data-tradd],[data-trdel],[data-tagrange],[data-delflag],[data-delflagask],[data-daypop],[data-planday],[data-pnav],[data-padd],[data-pdel],[data-pclear]');
+  const t = e.target.closest('[data-go],[data-act],[data-subj],[data-exam],[data-toggle],[data-bump],[data-addsub],[data-delsub],[data-delch],[data-revexam],[data-tick],[data-addch],[data-editch],[data-revcancel],[data-revsort],[data-revset],[data-revedit],[data-dnav],[data-wnav],[data-mnav],[data-openday],[data-bdone],[data-item],[data-dayflag],[data-editday],[data-newev],[data-addextra],[data-unskip],[data-rtday],[data-spnew],[data-spdel],[data-spundate],[data-spfrom],[data-rblk],[data-radd],[data-rfork],[data-rcond],[data-rbadd],[data-rbdel],[data-rbmove],[data-rbcopy],[data-rtcopyday],[data-rtclear],[data-rtexample],[data-rtnowtoo],[data-rmerge],[data-runmerge],[data-openfile],[data-renfile],[data-delfile],[data-bdel],[data-revlog],[data-setcfg],[data-theme-pick],[data-pedit],[data-premove],[data-revgo],[data-selmode],[data-selq],[data-seltag],[data-pclose],[data-tagtoggle],[data-newtag],[data-tradd],[data-trdel],[data-tagrange],[data-delflag],[data-delflagask],[data-daypop],[data-planday],[data-pnav],[data-padd],[data-pdel],[data-pclear]');
   if (!t) {
     const col = e.target.closest('.tg-col');
     if (col && (e.target === col || e.target.classList.contains('act-empty')) && col.dataset.mode === 'actual') {
@@ -4292,9 +4345,15 @@ document.addEventListener('click', e => {
   if (d.radd) return openRBlock(d.radd, null);
   if (d.rfork) { const n = getNode(V.rtDay, d.rfork); n.fork = { branches:[ { id:uid(), when:'lecture', flag:'', node:emptyNode() }, { id:uid(), when:'else', flag:'', node:emptyNode() } ] }; touch('plan'); return render(); }
   if (d.rcond) { const [p, i] = d.rcond.split('|'); return openCond(p, +i); }
+  if (d.rmerge) { const n = getNode(V.rtDay, d.rmerge); if (!n.fork || n.fork.then) return; n.fork.then = emptyNode(); touch('plan'); render(); return toast('Branches merged — add the blocks that come after them'); }
+  if (d.runmerge) { const n = getNode(V.rtDay, d.runmerge); if (!n.fork || !n.fork.then) return; const k = treeSize(n.fork.then);
+    const doIt = () => { delete n.fork.then; touch('plan'); render(); };
+    return k ? confirmBox('Remove the merge?', `The ${k} block${k>1?'s':''} after the merge will be removed. You can undo this.`, 'Remove', doIt) : doIt(); }
   if (d.rbadd) { const n = getNode(V.rtDay, d.rbadd); const hasElse = n.fork.branches.some(b => b.when === 'else'); insertBranch(n, { id:uid(), when: hasElse ? 'test' : 'else', flag:'', node:emptyNode() }); touch('plan'); return render(); }
   if (d.rbdel) { const [p, i] = d.rbdel.split('|'); const n = getNode(V.rtDay, p); const br = n.fork.branches[+i];
-    const doDel = () => { n.fork.branches.splice(+i, 1); if (!n.fork.branches.length) n.fork = null; touch('plan'); render(); };
+    const doDel = () => { n.fork.branches.splice(+i, 1);
+      if (!n.fork.branches.length) { const th = n.fork.then; n.fork = null; if (th) { n.blocks.push(...th.blocks); n.fork = th.fork; } }   /* the merged part stays */
+      touch('plan'); render(); };
     return treeSize(br.node) ? confirmBox('Delete branch?', `“${esc(condLabel(br))}” and its ${treeSize(br.node)} block(s) will be removed.`, 'Delete', doDel) : doDel(); }
   if (d.rbmove) { const [p, i, dir] = d.rbmove.split('|'); const a = getNode(V.rtDay, p).fork.branches; const j = +i + +dir; if (j < 0 || j >= a.length) return; [a[+i], a[j]] = [a[j], a[+i]]; touch('plan'); return render(); }
   if (d.rbcopy) { const [p, i] = d.rbcopy.split('|'); return openCopyBranch(p, +i); }
@@ -4740,7 +4799,7 @@ function rvBoardHTML(){
     <div class="panel-h"><button class="rb-tog" data-rbtoggle title="Hide the revision board" aria-label="Hide the revision board">▾</button><h3>Revision board</h3>${fresh != null ? `<span class="chip" title="Weighted by how much each chapter matters">${fresh}% fresh</span>` : ''}<span class="grow"></span>
       <label class="row mute" style="gap:6px;font-size:13px">Fades over <input class="inp rb-num" type="number" min="1" max="180" value="${rvFade()}" data-rbfade> days</label>
       <button class="btn sm" data-rbroul ${ids.length ? '' : 'disabled'}>🎲 Roulette</button>
-      <button class="btn sm pri" data-rbadd>＋ Track chapters</button></div>
+      <button class="btn sm pri" data-rbtrackadd>＋ Track chapters</button></div>
     <div class="panel-b">
       ${dueIds.length ? `<div class="rb-banner">🔔 <b>${dueIds.length} reminder${dueIds.length > 1 ? 's' : ''} due:</b> ${dueIds.map(x => esc(chapterById(x.id).name)).join(', ')}</div>` : ''}
       ${orph.length ? `<div class="rb-orph"><div class="rb-sub">Needs a chapter · ${orph.length}</div><p class="dim" style="font-size:12.5px;margin:0 0 8px">These came from BTracker's old Revision tab but no planner chapter matched them by name. Link each one to keep its history, or dismiss it.</p>${orph.map(orphRow).join('')}</div>` : ''}
@@ -4850,10 +4909,10 @@ document.addEventListener('change', e => {
   if (t.dataset.rbfade !== undefined && t.matches('[data-rbfade]')) { S.rev.fade = clamp(parseInt(t.value, 10) || 14, 1, 180); touch('rev'); render(); }
 });
 document.addEventListener('click', e => {
-  const b = e.target.closest && e.target.closest('[data-rbadd],[data-rbroul],[data-rbrem],[data-rbbump],[data-rbuntrack],[data-rbtrack],[data-rborphlink],[data-rborphdrop]');
+  const b = e.target.closest && e.target.closest('[data-rbtrackadd],[data-rbroul],[data-rbrem],[data-rbbump],[data-rbuntrack],[data-rbtrack],[data-rborphlink],[data-rborphdrop]');
   if (!b) return;
   const d = b.dataset;
-  if (d.rbadd !== undefined) return openRbTrack();
+  if (d.rbtrackadd !== undefined) return openRbTrack();
   if (d.rbroul !== undefined) return openRbRoulette();
   if (d.rbrem) return openRbReminder(d.rbrem);
   if (d.rbbump) { rbBump(d.rbbump); render(); return toast('Revised · prep +1'); }
