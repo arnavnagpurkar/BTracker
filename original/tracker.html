@@ -868,6 +868,9 @@ button.td-car:hover{color:var(--text);background:var(--ink-3)}
 /* the session's question picker */
 .lq-pick{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin-bottom:10px}
 .lq-pick select{width:100%;min-width:0}
+.lq-way{display:flex;gap:6px;margin-bottom:10px}
+.lq-cnt-row{display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end}.lq-cnt-row label{display:flex;flex-direction:column;gap:4px}.lq-cnt-row .numin{width:110px}.lq-cnt-row .blabel{margin:0}
+.lq-count[hidden],.lq-pickwrap[hidden]{display:none}
 .lq-modes{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:10px;align-items:center}
 .lq-grid{display:flex;flex-wrap:wrap;gap:6px;max-height:220px;overflow:auto;padding:4px 2px}
 .lq-q{min-width:38px}
@@ -8765,12 +8768,18 @@ function qlocAgg(from, to, subs){
 }
 function whereRowsHTML(agg){
   const max = Math.max(1, ...Object.values(agg)), bySub = {};
-  Object.entries(agg).forEach(([lk,n])=>{ const [sc,no,code] = lk.split("|"), ch = chapOf(sc,no); if(!ch || !subjOf(sc)) return;
+  Object.entries(agg).forEach(([lk,n])=>{ const [sc,no,code] = lk.split("|");
+    if(no==="~"){ if(subjOf(sc)) (bySub[sc] = bySub[sc] || []).push({sc, count:true, label:code||"", n}); return; }
+    const ch = chapOf(sc,no); if(!ch || !subjOf(sc)) return;
     (bySub[sc] = bySub[sc] || []).push({sc, ch, ex:exOf(sc,ch,code), code, n}); });
   return Object.keys(bySub).sort((a,b)=>bySub[b].reduce((x,r)=>x+r.n,0)-bySub[a].reduce((x,r)=>x+r.n,0)).map(sc=>{
     const rows = bySub[sc].sort((a,b)=>b.n-a.n), sub = subjOf(sc), tot = rows.reduce((x,r)=>x+r.n,0);
     return `<div class="wh-sub"><div class="wh-h"><i style="background:${sub.accent}"></i>${esc(sub.name)}<b>${tot}</b></div>
-      ${rows.map(r=>{ const mo = sub.modules[r.ch.mod];
+      ${rows.map(r=>{
+        if(r.count) return `<div class="wh-row" title="Counted in a session you added, without picking the questions">
+          <span class="wh-loc"><b>${esc(r.label || "Counted in a session")}</b><span>${r.label ? "counted in a session" : "no questions picked"}</span></span>
+          <span class="wh-bar"><i style="width:${Math.round(r.n/max*100)}%;background:${sub.accent}"></i></span><b class="wh-n">${r.n}</b></div>`;
+        const mo = sub.modules[r.ch.mod];
         return `<a class="wh-row" href="#/${esc(sc)}/${esc(String(r.ch.mod))}/${esc(String(r.ch.no))}/${esc(r.code)}" title="Open this exercise">
           <span class="wh-loc"><b>${esc(chTitle(r.ch))}</b><span>${esc(mo?mo.name:"")}${r.ex?" · "+esc(r.ex.name):""}</span></span>
           <span class="wh-bar"><i style="width:${Math.round(r.n/max*100)}%;background:${sub.accent}"></i></span><b class="wh-n">${r.n}</b></a>`; }).join("")}</div>`;
@@ -9070,7 +9079,7 @@ function openActivityManager(){
   };
   draw();
 }
-let lqLast = null;
+let lqLast = null, lqWay = "count", lqCountSub = null;
 function addLogEntry(){
   const now = new Date();
   const hhmm = now.toTimeString().slice(0,5);
@@ -9099,18 +9108,37 @@ function addLogEntry(){
         <i style="background:var(--flag)"></i>${esc(d.name)}</button>`).join("")}</div></div>`:""}
     <div class="block lq">
       <div class="blabel">Questions you did in this session (optional)</div>
+      <div class="lq-way"><button class="tbtn ${lqWay==="count"?"on":""}" data-lqway="count">Just a count</button><button class="tbtn ${lqWay==="pick"?"on":""}" data-lqway="pick">Pick the questions</button></div>
+      <div class="lq-count" ${lqWay==="count"?"":"hidden"}>
+        <div class="hint" style="margin:0 0 10px">For PYQs, a book or anything you don't track question by question — just say how many you solved. It counts towards that day in Statistics.</div>
+        <div class="lq-cnt-row"><label><span class="blabel">Solved</span><input class="numin" type="number" id="lqN" min="0" max="2000" placeholder="0"></label>
+          <label><span class="blabel">Subject</span><select id="lqCS">${TREE.order.map(sc=>`<option value="${esc(sc)}">${esc(subjOf(sc).name)}</option>`).join("")}</select></label>
+          <label style="flex:1;min-width:180px"><span class="blabel">What were they? <span class="hint" style="margin:0">(optional)</span></span><input class="tin" id="lqLab" placeholder="e.g. JEE Main 2023 PYQs" style="width:100%"></label></div>
+      </div>
+      <div class="lq-pickwrap" ${lqWay==="pick"?"":"hidden"}>
       <div class="hint" style="margin:0 0 10px">Choose an exercise, choose what to mark, then tap the questions. Switch exercise as often as you like — everything you mark is saved with the session and counted on its day in Statistics.</div>
       ${pick ? `<div class="lq-pick"><select id="lqS" aria-label="Subject"></select><select id="lqM" aria-label="Module"></select><select id="lqC" aria-label="Chapter"></select><select id="lqE" aria-label="Exercise"></select></div>
       <div class="lq-modes">${[["done","Solved"],["correct","✓ Correct"],["wrong","✗ Wrong"],["cant","Could not solve"],["clear","Clear"]].map(([v,l])=>`<button class="tbtn ${v===mode?"on":""}" data-lqmode="${v}">${l}</button>`).join("")}
         <span class="spacer"></span><button class="tbtn" id="lqAll" title="Apply to every question in this exercise">All in this exercise</button></div>
       <div class="lq-grid" id="lqGrid"></div><div class="lq-sum" id="lqSum"></div>` : `<div class="empty">No exercises to choose from yet.</div>`}
+      </div>
     </div>
     <div class="msg bad" id="lMsg"></div>
     <div class="acts"><button class="btn" id="lNo">Cancel</button><button class="btn primary" id="lYes">Add session</button></div>`);
   modal.classList.add("wide");
   let act = null, dl = null;
+  let csTouched = false;
+  const csSel = modal.querySelector("#lqCS");
+  if(lqCountSub && subjOf(lqCountSub)) csSel.value = lqCountSub;
+  csSel.onchange = ()=>{ csTouched = true; };
+  modal.querySelectorAll("[data-lqway]").forEach(b=>b.onclick = ()=>{ lqWay = b.dataset.lqway;
+    modal.querySelectorAll("[data-lqway]").forEach(x=>x.classList.toggle("on", x===b));
+    modal.querySelector(".lq-count").hidden = lqWay!=="count"; modal.querySelector(".lq-pickwrap").hidden = lqWay!=="pick";
+    if(lqWay==="count") modal.querySelector("#lqN").focus(); });
   modal.querySelectorAll("[data-lact]").forEach(b=>b.onclick = ()=>{
     act = b.dataset.lact;
+    /* the subject you were studying is the obvious home for the count */
+    if(!csTouched && subjOf(act)) csSel.value = act;
     modal.querySelectorAll("[data-lact]").forEach(x=>x.classList.toggle("on", x===b)); });
   modal.querySelectorAll("[data-ldl]").forEach(b=>b.onclick = ()=>{
     const same = dl===b.dataset.ldl; dl = same?null:b.dataset.ldl;
@@ -9179,8 +9207,15 @@ function addLogEntry(){
     if(!act){ msg.textContent = "Choose what you were doing."; return; }
     const when = new Date(date+"T"+time+":00");
     if(isNaN(when)){ msg.textContent = "That day and time did not make sense."; return; }
+    const cntRaw = lqWay==="count" ? modal.querySelector("#lqN").value.trim() : "", cnt = cntRaw ? parseInt(cntRaw,10) : 0;
+    if(cntRaw && !(cnt>=0 && cnt<=2000)){ msg.textContent = "Solved should be a number between 0 and 2000."; return; }
     snapshot("add session");
     logSession(act, mins, dl, Math.floor(when.getTime()/60000));
+    let counted = 0;
+    if(lqWay==="count" && cnt>0){
+      const sc = csSel.value, lab = modal.querySelector("#lqLab").value.trim().replace(/\|/g,"/").slice(0,80);
+      bumpStat(sc, cnt, "~|"+lab, date); counted = cnt; lqCountSub = sc;
+    }
     /* the questions, counted on the session's own day */
     let solved = 0;
     pending.forEach((m, qk)=>{
@@ -9197,11 +9232,13 @@ function addLogEntry(){
       if(was && !isDone(v)) bumpStat(q.s, -1, q.c+"|"+q.e, date);
     });
     if(pick) lqLast = Object.assign({}, pick);
+    if(lqWay!=="pick") pending.clear();
     if(pending.size){ try{ sweepFinishedHomework(); }catch(e){} buildTree(); markDirty(); }
+    if(counted) markDirty();
     closeModal();
     if(VIEW.name==="stats") statView.anchor = new Date(date+"T00:00:00");
     render();
-    toastUndo(pending.size ? `Session added · ${pending.size} question${pending.size>1?"s":""} marked${solved?`, ${solved} newly solved`:""}` : "Session added");
+    toastUndo(counted ? `Session added · ${counted} question${counted>1?"s":""} solved` : pending.size ? `Session added · ${pending.size} question${pending.size>1?"s":""} marked${solved?`, ${solved} newly solved`:""}` : "Session added");
   };
 }
 
