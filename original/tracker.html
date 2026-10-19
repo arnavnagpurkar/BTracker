@@ -807,6 +807,82 @@ button.td-car:hover{color:var(--text);background:var(--ink-3)}
 .td.done .td-t{text-decoration:line-through;color:var(--text-3)}
 .td-in{flex:1;min-width:180px;padding:4px 8px}
 .td-lab{font-size:11px;font-weight:600;padding:2px 8px;border-radius:99px;white-space:nowrap;color:var(--lc);background:color-mix(in srgb,var(--lc) 15%,transparent);border:1px solid color-mix(in srgb,var(--lc) 40%,transparent)}
+.zen{position:fixed;inset:0;z-index:9000;color:var(--zi);font-family:var(--sans);overflow:hidden;background:#000;user-select:none;-webkit-user-select:none}
+body.zen-on{overflow:hidden} body.zen-on .toast{z-index:9600}
+.zen canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+.zen-vig{position:absolute;inset:0;pointer-events:none;background:radial-gradient(ellipse at center,transparent 45%,rgba(0,0,0,.35))}
+.zen.light .zen-vig{background:radial-gradient(ellipse at center,transparent 55%,rgba(120,100,70,.18))}
+.zen-top{position:absolute;top:0;left:0;right:0;display:flex;align-items:flex-start;gap:8px;padding:18px 22px;transition:opacity .6s}
+.zen-tname b{display:block;font-size:14px;font-weight:600;letter-spacing:.02em;opacity:.9}
+.zen-tname span{display:block;font-size:12px;opacity:.6;margin-top:2px}
+.zen-ib{width:38px;height:38px;border-radius:99px;display:grid;place-items:center;font-size:16px;color:var(--zi);background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer}
+.zen.light .zen-ib,.zen.light .zen-btn,.zen.light .zen-chip{background:rgba(255,255,255,.45);border-color:rgba(60,70,50,.2)}
+.zen-ib:hover,.zen-btn:hover,.zen-chip:hover{border-color:var(--za)}
+.zen-center{position:absolute;left:50%;top:46%;transform:translate(-50%,-50%);width:min(64vmin,460px);aspect-ratio:1;display:grid;place-items:center;pointer-events:none}
+.zen-ring{position:absolute;inset:0;width:100%;height:100%;transform:rotate(-90deg)}
+.zen-ring circle{fill:none;stroke-width:1.6}
+.zr-bg{stroke:color-mix(in srgb,var(--zi) 16%,transparent)}
+.zr-fg{stroke:var(--za);stroke-dasharray:1000;stroke-linecap:round;filter:drop-shadow(0 0 6px var(--za));transition:stroke-dashoffset 1s linear}
+.zen-face{text-align:center}
+.zen-clock{font-size:clamp(64px,13vmin,148px);font-weight:200;letter-spacing:-.02em;font-variant-numeric:tabular-nums;line-height:1;text-shadow:0 0 30px color-mix(in srgb,var(--za) 45%,transparent),0 2px 18px rgba(0,0,0,.35)}
+.zen.light .zen-clock{text-shadow:0 1px 0 rgba(255,255,255,.6)}
+.zen:not(.light) .zen-clock{text-shadow:0 0 30px color-mix(in srgb,var(--za) 45%,transparent),0 2px 24px rgba(0,0,0,.6),0 0 2px rgba(0,0,0,.4)}
+.zen:not(.light) .zen-lbl{text-shadow:0 1px 10px rgba(0,0,0,.6)}
+.zen-lbl{margin-top:12px;font-size:14px;letter-spacing:.12em;text-transform:uppercase;opacity:.75}
+.zen.paused .zen-clock{opacity:.7}
+.zen-acts{position:absolute;left:50%;transform:translateX(-50%);bottom:108px;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:8px;max-width:min(92vw,820px)}
+.zen-acts>span{font-size:13px;opacity:.75;margin-right:4px}
+.zen-chip{display:flex;align-items:center;gap:7px;padding:7px 13px;border-radius:99px;font-size:13px;font-weight:600;color:var(--zi);background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.14);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);cursor:pointer}
+.zen-chip i{width:8px;height:8px;border-radius:99px}
+.zen-chip.on{border-color:var(--za);box-shadow:0 0 0 1px var(--za) inset}
+.zen-bar{position:absolute;left:50%;bottom:34px;transform:translateX(-50%);display:flex;gap:8px;align-items:center;transition:opacity .6s,transform .6s}
+.zen-btn{padding:11px 18px;border-radius:99px;font-size:14px;font-weight:600;color:var(--zi);background:rgba(0,0,0,.28);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);cursor:pointer;white-space:nowrap}
+.zen-btn.pri{background:color-mix(in srgb,var(--za) 26%,rgba(0,0,0,.3));border-color:color-mix(in srgb,var(--za) 70%,transparent);min-width:118px}
+.zen.light .zen-btn.pri{background:color-mix(in srgb,var(--za) 25%,rgba(255,255,255,.5))}
+.zen-sep{width:1px;height:26px;background:rgba(255,255,255,.18);margin:0 4px}
+.zen.idle{cursor:none}
+.zen.idle .zen-bar,.zen.idle .zen-top,.zen.idle .zen-acts{opacity:0;pointer-events:none}
+.zen.idle .zen-bar{transform:translate(-50%,12px)}
+.zen-panel{position:absolute;left:50%;bottom:96px;transform:translateX(-50%);width:min(920px,calc(100vw - 32px));max-height:calc(100vh - 190px);overflow:auto;padding:16px;border-radius:18px;background:rgba(10,12,18,.72);border:1px solid rgba(255,255,255,.12);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:#eef1f6;animation:zenIn .22s ease both}
+@keyframes zenIn{from{opacity:0;transform:translate(-50%,10px)}to{opacity:1;transform:translate(-50%,0)}}
+.zen-panel[hidden]{display:none}
+.zen-ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+.zen-ph b{font-size:15px}
+.zen-panel .zen-ib{color:#eef1f6;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.14);width:32px;height:32px;font-size:13px}
+.zen-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
+.zen-card{display:flex;gap:12px;align-items:center;text-align:left;padding:10px;border-radius:12px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.03);color:inherit;cursor:pointer}
+.zen-card:hover{background:rgba(255,255,255,.07)}
+.zen-card.on{border-color:var(--za);background:rgba(255,255,255,.08)}
+.zen-card i{flex:none;width:58px;height:44px;border-radius:9px;background:linear-gradient(135deg,var(--a) 0%,var(--b) 62%,var(--c) 100%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+.zen-card b{display:block;font-size:13.5px;font-weight:600}
+.zen-card small{display:block;font-size:11.5px;opacity:.65;margin-top:2px;line-height:1.35}
+.zen-snd{width:min(420px,calc(100vw - 32px))}
+.zen-snd label{display:grid;grid-template-columns:90px 1fr 34px;align-items:center;gap:10px;margin:10px 0;font-size:13.5px}
+.zen-snd input[type=range]{width:100%;accent-color:var(--za)}
+.zen-snd em{font-style:normal;font-variant-numeric:tabular-nums;opacity:.7;text-align:right}
+.zen-snd .zen-btn{margin-top:6px;color:#eef1f6;background:rgba(255,255,255,.06);border-color:rgba(255,255,255,.16);width:100%}
+.zen-snd p{font-size:12px;opacity:.6;margin:12px 0 0}
+.zen-mini{display:none}
+.zen.mini{inset:auto 20px 20px auto;width:340px;height:236px;z-index:90;border-radius:16px;border:1px solid rgba(255,255,255,.14);box-shadow:0 18px 50px rgba(0,0,0,.55),0 0 0 1px rgba(0,0,0,.3);animation:zenMiniIn .25s ease both}
+.zen.mini.col{width:auto;height:auto;background:rgba(14,18,24,.92);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px)}
+.zen.mini canvas{height:calc(100% - 50px)}
+.zen.mini.col canvas,.zen.mini .zen-vig,.zen.mini .zen-top,.zen.mini .zen-center,.zen.mini .zen-acts,.zen.mini .zen-bar,.zen.mini .zen-panel{display:none !important}
+.zen.mini .zen-mini{display:flex;align-items:center;gap:6px;position:absolute;left:0;right:0;bottom:0;height:50px;padding:0 8px 0 14px;background:rgba(10,12,18,.88);color:#eef1f6;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.zen.mini.col .zen-mini{position:static;background:none}
+.zm-dot{width:9px;height:9px;border-radius:99px;background:var(--za);box-shadow:0 0 10px var(--za);flex:none}
+.zen.mini:not(.paused) .zm-dot{animation:zmPulse 2.4s ease-in-out infinite}
+.zm-clock{font-size:18px;font-weight:500;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+.zm-lbl{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.6;margin-right:auto;padding-right:6px;white-space:nowrap}
+.zm-b{width:32px;height:32px;border-radius:99px;display:grid;place-items:center;font-size:13px;color:#eef1f6;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.12);cursor:pointer;flex:none}
+.zm-b:hover{border-color:var(--za)}
+@keyframes zmPulse{50%{opacity:.35}}
+@keyframes zenMiniIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
+@media (max-width:640px){ .zen.mini{right:12px;bottom:76px;width:calc(100vw - 24px);height:210px} .zen.mini.col{width:auto} }
+@media (max-width:640px){
+  .zen-top{padding:12px 14px} .zen-tname span{display:none}
+  .zen-bar{bottom:20px;gap:6px;width:calc(100vw - 24px);justify-content:center;flex-wrap:wrap} .zen-btn{padding:10px 13px;font-size:13px} .zen-sep{display:none}
+  .zen-acts{bottom:122px} .zen-panel{bottom:126px} .zen-center{top:40%}
+}
 .ws-group{margin-bottom:16px}
 .ws-list{padding:4px}
 .wsrow{display:grid;grid-template-columns:auto minmax(0,1fr) 120px auto auto;align-items:center;gap:12px;padding:9px 10px 9px 14px;border-radius:9px;cursor:pointer;position:relative;transition:background .15s}
@@ -7751,7 +7827,7 @@ function viewStudy(){
     <span class="spacer"></span>
     <button class="tbtn" id="addLog2" title="Add a session you didn't time — and the questions you did in it">+ Add a session</button>
     <button class="tbtn" id="mgAct">Subjects &amp; activities</button>
-    ${kind!=="speed"?`<button class="tbtn" id="tSet">⚙ Settings</button>`:""}
+    ${kind!=="speed"?`<button class="tbtn zen-open" id="tZen" title="Full screen, with a calming scene and sound">◐ Zen mode</button><button class="tbtn" id="tSet">⚙ Settings</button>`:""}
   </div>`;
 
   let body;
@@ -7835,6 +7911,7 @@ function viewStudy(){
   const s2 = document.getElementById("tPause"); if(s2) s2.onclick = pauseTimer;
   const s3 = document.getElementById("tStop"); if(s3) s3.onclick = stopTimer;
   const s4 = document.getElementById("tSet"); if(s4) s4.onclick = openTimerSettings;
+  const z4 = document.getElementById("tZen"); if(z4) z4.onclick = openZen;
   const s5 = document.getElementById("mgAct"); if(s5) s5.onclick = openActivityManager;
   const s6 = document.getElementById("addLog2"); if(s6) s6.onclick = addLogEntry;
 }
@@ -14414,6 +14491,690 @@ function openWsKinds(){
     modal.querySelector("#wkDone").onclick = ()=>{ closeModal(); if(VIEW.name==="ws") viewWorksheets(); };
   };
   draw();
+}
+
+
+/* ============================================================
+   37. ZEN MODE — the focus timer, full screen, over an animated
+   scene with its own generated soundscape and music. Everything is
+   drawn and synthesised in the page: no images or audio files.
+   ============================================================ */
+const ZEN_THEMES = [
+  {id:"space",  name:"Deep Space Observatory", sub:"Stars, drifting nebulae and a constellation that lights up as you go",
+   ink:"#C5C6C7", acc:"#66FCF1", sw:["#0B0C10","#1F2833","#66FCF1"], amb:"space", mus:"pad"},
+  {id:"rain",   name:"Rain-Slicked Lo-Fi Window", sub:"Rain on the glass, city lights blurred behind it",
+   ink:"#E6E9EE", acc:"#E5A93C", sw:["#1A1A24","#2E3A44","#E5A93C"], amb:"rain", mus:"lofi"},
+  {id:"synth",  name:"Synthwave Focus", sub:"An endless neon grid rolling towards a breathing sun",
+   ink:"#FFE6F5", acc:"#FF007F", sw:["#0A0A12","#7A00FF","#FF007F"], amb:"night", mus:"synth"},
+  {id:"library",name:"Autumn Library Alcove", sub:"Candlelight, dust in the light and leaves falling outside",
+   ink:"#F4E8C1", acc:"#E0A458", sw:["#2C1810","#1E3A2B","#F4E8C1"], amb:"library", mus:"piano"},
+  {id:"zen",    name:"Serene Zen Garden", sub:"Raked sand, river stones and drifting cherry petals",
+   ink:"#3D4A36", acc:"#5B7052", sw:["#EFE8D8","#5B7052","#F3C1C6"], amb:"stream", mus:"koto", light:true},
+  {id:"sea",    name:"Luminous Deep Sea", sub:"Light rays from above and jellyfish drifting up",
+   ink:"#D8F7FF", acc:"#00E5FF", sw:["#051329","#0A2540","#FF65A3"], amb:"sea", mus:"deep"},
+  {id:"forest", name:"Sunlit Forest Canopy", sub:"Looking up through swaying leaves into morning sun",
+   ink:"#F8F9FA", acc:"#FFB703", sw:["#1B4332","#40916C","#FFB703"], amb:"forest", mus:"folk"},
+  {id:"cafe",   name:"Sunset Lo-Fi Coffee Shop", sub:"The sky turns from orange to violet as your session runs",
+   ink:"#FFFBEB", acc:"#F97316", sw:["#3B2314","#D97706","#F97316"], amb:"cafe", mus:"jazz"},
+  {id:"wave",   name:"Minimalist Geometric Wave", sub:"Clean waves: busier while you focus, slow on a break",
+   ink:"#EDE7F6", acc:"#BB86FC", sw:["#121212","#BB86FC","#03DAC6"], amb:"focus", mus:"minimal"},
+  {id:"fire",   name:"Cozy Cabin Fireplace", sub:"A stone hearth, dancing flames and embers drifting up",
+   ink:"#FFE8D6", acc:"#FB8B24", sw:["#1D3557","#9A031E","#FB8B24"], amb:"fire", mus:"finger"}
+];
+const ZEN = {on:false, mini:false, col:true, el:null, cv:null, cx:null, w:0, h:0, dpr:1, raf:0, last:0, t0:0, th:null, st:null,
+             idleT:0, lastClock:"", lastLbl:"", ripples:[]};
+function zenPrefs(){
+  let p = {}; try{ p = JSON.parse(localStorage.getItem("bt.zen")||"{}") || {}; }catch(e){}
+  return Object.assign({theme:"space", amb:55, mus:35, muted:false}, p);
+}
+function zenSave(p){ try{ localStorage.setItem("bt.zen", JSON.stringify(p)); }catch(e){} }
+const zr = (a,b)=>a+Math.random()*(b-a), TAU = Math.PI*2;
+function zenProgress(){
+  const e = elapsedSec();
+  if(TIMER.endless) return (e % 3600)/3600;
+  return TIMER.total ? Math.min(1, e/TIMER.total) : 0;
+}
+
+/* ---------------- opening and closing ---------------- */
+function openZen(){
+  if(ZEN.on){ if(ZEN.mini) zenMaximise(); return; }
+  if((S.pom.kind||"pomo")==="speed"){ toast("Zen mode works with Pomodoro and Endless"); return; }
+  const P = zenPrefs();
+  ZEN.on = true; ZEN.mini = false; ZEN.col = true; ZEN.t0 = performance.now(); ZEN.lastClock = ""; ZEN.lastLbl = ""; ZEN.ripples = [];
+  const el = document.createElement("div"); el.id = "zen"; el.className = "zen";
+  el.innerHTML = `<canvas id="zenCv"></canvas><div class="zen-vig"></div>
+    <div class="zen-top"><div class="zen-tname"><b></b><span></span></div><span class="spacer"></span>
+      <button class="zen-ib" data-z="min" title="Shrink to a small player and keep using the app (Esc)">↘</button><button class="zen-ib" data-z="fs" title="Full screen (F)">⛶</button><button class="zen-ib" data-z="exit" title="Close Zen mode">✕</button></div>
+    <div class="zen-center">
+      <svg class="zen-ring" viewBox="0 0 200 200"><circle cx="100" cy="100" r="94" class="zr-bg"/><circle cx="100" cy="100" r="94" class="zr-fg" id="zenArc" pathLength="1000"/></svg>
+      <div class="zen-face"><div class="zen-clock" id="zenClock">0:00</div><div class="zen-lbl" id="zenLbl"></div></div>
+    </div>
+    <div class="zen-acts" id="zenActs"></div>
+    <div class="zen-bar">
+      <button class="zen-btn pri" data-z="play" id="zenPlay">▶ Start</button>
+      <button class="zen-btn" data-z="stop" title="Stop and log this session">■ Stop &amp; log</button>
+      <span class="zen-sep"></span>
+      <button class="zen-btn" data-z="themes">◐ Theme</button>
+      <button class="zen-btn" data-z="sound" id="zenSndBtn">♪ Sound</button>
+      <button class="zen-btn" data-z="min" title="Shrink to a small player and keep using the app">↘ Mini player</button>
+    </div>
+    <div class="zen-mini"><i class="zm-dot"></i><b class="zm-clock" id="zenMClock">0:00</b><span class="zm-lbl" id="zenMLbl"></span>
+      <button class="zm-b" data-z="play" id="zenMPlay" title="Start or pause">▶</button>
+      <button class="zm-b" data-z="mcol" id="zenMCol" title="Show the scene">▴</button>
+      <button class="zm-b" data-z="max" title="Back to full Zen mode">⤢</button>
+      <button class="zm-b" data-z="exit" title="Close Zen mode">✕</button></div>
+    <div class="zen-panel" id="zenThemes" hidden><div class="zen-ph"><b>Choose a scene</b><button class="zen-ib" data-z="close">✕</button></div>
+      <div class="zen-grid">${ZEN_THEMES.map(t=>`<button class="zen-card" data-zt="${t.id}" style="--a:${t.sw[0]};--b:${t.sw[1]};--c:${t.sw[2]}">
+        <i></i><span><b>${esc(t.name)}</b><small>${esc(t.sub)}</small></span></button>`).join("")}</div></div>
+    <div class="zen-panel zen-snd" id="zenSound" hidden><div class="zen-ph"><b>Sound</b><button class="zen-ib" data-z="close">✕</button></div>
+      <label><span>Ambience</span><input type="range" min="0" max="100" id="zenAmb" value="${P.amb}"><em id="zenAmbV">${P.amb}</em></label>
+      <label><span>Music</span><input type="range" min="0" max="100" id="zenMus" value="${P.mus}"><em id="zenMusV">${P.mus}</em></label>
+      <button class="zen-btn" data-z="mute" id="zenMute">${P.muted?"🔇 Sound off — turn on":"🔊 Sound on — mute"}</button>
+      <p id="zenSndNote"></p></div>`;
+  document.body.appendChild(el); document.body.classList.add("zen-on");
+  ZEN.el = el; ZEN.cv = el.querySelector("#zenCv"); ZEN.cx = ZEN.cv.getContext("2d");
+  zenResize(); window.addEventListener("resize", zenResize);
+  el.addEventListener("click", zenClick);
+  el.addEventListener("input", zenInput);
+  el.addEventListener("pointermove", zenWake);
+  document.addEventListener("keydown", zenKey, true);
+  document.addEventListener("fullscreenchange", zenFsChange);
+  zenSetTheme(P.theme, true);
+  zenActs();
+  zenWake();
+  ZEN.last = performance.now();
+  ZEN.raf = requestAnimationFrame(zenFrame);
+  /* full screen needs the click that opened us, so ask straight away */
+  zenFullscreen(true);
+  zaStart();
+  zenRipple();
+}
+function closeZen(){
+  if(!ZEN.on) return;
+  ZEN.on = false;
+  cancelAnimationFrame(ZEN.raf);
+  window.removeEventListener("resize", zenResize);
+  document.removeEventListener("keydown", zenKey, true);
+  document.removeEventListener("fullscreenchange", zenFsChange);
+  if(document.fullscreenElement){ try{ document.exitFullscreen(); }catch(e){} }
+  zaStop(true);
+  if(ZEN.el) ZEN.el.remove(); document.body.classList.remove("zen-on");
+  ZEN.el = null;
+  if(VIEW.name==="study") viewStudy();
+}
+function zenFullscreen(on){
+  const el = ZEN.el; if(!el) return;
+  try{
+    const de = document.documentElement;   /* the whole page, so toasts still show above the scene */
+    if(on && !document.fullscreenElement && de.requestFullscreen) de.requestFullscreen({navigationUI:"hide"}).catch(()=>{});
+    else if(!on && document.fullscreenElement) document.exitFullscreen();
+  }catch(e){}
+}
+function zenFsChange(){ if(ZEN.el) ZEN.el.classList.toggle("fs", !!document.fullscreenElement); setTimeout(zenResize, 50); }
+function zenResize(){
+  if(!ZEN.cv) return;
+  const dpr = Math.min(1.5, window.devicePixelRatio||1);
+  let w = window.innerWidth, h = window.innerHeight;
+  if(ZEN.mini){ if(ZEN.col) return; w = ZEN.cv.clientWidth || 320; h = ZEN.cv.clientHeight || 180; }
+  ZEN.dpr = dpr; ZEN.w = w; ZEN.h = h;
+  ZEN.cv.width = Math.round(w*dpr); ZEN.cv.height = Math.round(h*dpr);
+  ZEN.cx.setTransform(dpr,0,0,dpr,0,0);
+  if(ZEN.th) ZEN.st = ZSCENE[ZEN.th.id].init(w, h);
+  ZEN.sized = w+"x"+h;
+}
+/* shrink to a small floating player that stays while you use the rest of the app; it starts collapsed */
+function zenMinimise(){
+  if(!ZEN.el || ZEN.mini) return;
+  ZEN.mini = true; ZEN.col = true;
+  if(document.fullscreenElement){ try{ document.exitFullscreen(); }catch(e){} }
+  ZEN.el.querySelectorAll(".zen-panel").forEach(x=>x.hidden = true);
+  ZEN.el.classList.add("mini","col"); ZEN.el.classList.remove("idle");
+  document.body.classList.remove("zen-on");
+  ZEN.lastClock = ""; ZEN.lastLbl = "";
+}
+function zenMaximise(){
+  if(!ZEN.el || !ZEN.mini) return;
+  ZEN.mini = false; ZEN.el.classList.remove("mini","col");
+  document.body.classList.add("zen-on");
+  ZEN.lastClock = ""; ZEN.lastLbl = "";
+  zenResize(); zenFullscreen(true); zenWake();
+}
+function zenMiniCollapse(col){
+  if(!ZEN.mini) return;
+  ZEN.col = col; ZEN.el.classList.toggle("col", col);
+  ZEN.el.querySelector("#zenMCol").textContent = col ? "▴" : "▾";
+  ZEN.el.querySelector("#zenMCol").title = col ? "Show the scene" : "Hide the scene";
+  if(!col) requestAnimationFrame(zenResize);
+}
+function zenWake(){
+  if(!ZEN.el || ZEN.mini) return;
+  ZEN.el.classList.remove("idle");
+  clearTimeout(ZEN.idleT);
+  ZEN.idleT = setTimeout(()=>{ if(ZEN.el && TIMER.running && ZEN.el.querySelectorAll(".zen-panel:not([hidden])").length===0) ZEN.el.classList.add("idle"); }, 3500);
+}
+function zenKey(e){
+  if(!ZEN.on || ZEN.mini) return;
+  const tag = (e.target.tagName||"").toLowerCase();
+  if(tag==="input" && e.target.type!=="range") return;
+  if(e.key==="Escape"){ if(document.fullscreenElement) return; e.preventDefault(); e.stopPropagation(); zenMinimise(); return; }
+  if(e.key===" "){ e.preventDefault(); e.stopPropagation(); zenToggle(); return; }
+  if(e.key==="f"||e.key==="F"){ e.preventDefault(); zenFullscreen(!document.fullscreenElement); return; }
+  if(e.key==="t"||e.key==="T"){ const i = ZEN_THEMES.findIndex(t=>t.id===ZEN.th.id); zenSetTheme(ZEN_THEMES[(i+1)%ZEN_THEMES.length].id); }
+  zenWake();
+}
+function zenToggle(){
+  if(TIMER.running){ pauseTimer(); zenRipple(); }
+  else { if(!TIMER.act){ toast("Pick what you are studying first"); if(ZEN.mini) zenMaximise(); zenActs(true); return; } startTimer(); zenRipple(); }
+  zaResume(); zenActs(); zenWake();
+}
+function zenClick(e){
+  zenWake();
+  const b = e.target.closest("[data-z],[data-zt],[data-zact]"); if(!b) return;
+  if(b.dataset.zact){ TIMER.act = b.dataset.zact; zenActs(); ZEN.lastLbl = ""; if(VIEW.name==="study") viewStudy(); return; }
+  if(b.dataset.zt){ zenSetTheme(b.dataset.zt); return; }
+  const z = b.dataset.z, $ = id=>ZEN.el.querySelector(id);
+  if(z==="exit") return closeZen();
+  if(z==="min") return zenMinimise();
+  if(z==="max") return zenMaximise();
+  if(z==="mcol") return zenMiniCollapse(!ZEN.col);
+  if(z==="fs") return zenFullscreen(!document.fullscreenElement);
+  if(z==="play") return zenToggle();
+  if(z==="stop"){ const had = elapsedSec() > 0; stopTimer(); if(had) zenRipple(); zenActs(); return; }
+  if(z==="themes"||z==="sound"){ const p = $(z==="themes"?"#zenThemes":"#zenSound"), open = p.hidden;
+    ZEN.el.querySelectorAll(".zen-panel").forEach(x=>x.hidden = true); p.hidden = !open; zaResume(); return; }
+  if(z==="close"){ ZEN.el.querySelectorAll(".zen-panel").forEach(x=>x.hidden = true); return; }
+  if(z==="mute"){ const P = zenPrefs(); P.muted = !P.muted; zenSave(P); zaLevels(); b.textContent = P.muted?"🔇 Sound off — turn on":"🔊 Sound on — mute"; zaResume(); }
+}
+function zenInput(e){
+  const t = e.target; if(t.id!=="zenAmb" && t.id!=="zenMus") return;
+  const P = zenPrefs(); P[t.id==="zenAmb"?"amb":"mus"] = +t.value; zenSave(P);
+  ZEN.el.querySelector(t.id==="zenAmb"?"#zenAmbV":"#zenMusV").textContent = t.value; zaLevels(); zaResume();
+}
+function zenSetTheme(id, first){
+  const th = ZEN_THEMES.find(t=>t.id===id) || ZEN_THEMES[0];
+  ZEN.th = th; const P = zenPrefs(); P.theme = th.id; zenSave(P);
+  const el = ZEN.el;
+  el.dataset.theme = th.id; el.classList.toggle("light", !!th.light);
+  el.style.setProperty("--zi", th.ink); el.style.setProperty("--za", th.acc);
+  el.querySelector(".zen-tname b").textContent = th.name;
+  el.querySelector(".zen-tname span").textContent = th.sub;
+  el.querySelectorAll("[data-zt]").forEach(c=>c.classList.toggle("on", c.dataset.zt===th.id));
+  ZEN.st = ZSCENE[th.id].init(ZEN.w, ZEN.h);
+  ZEN.lastLbl = "";
+  if(!first) zaStart();
+}
+function zenActs(force){
+  const box = ZEN.el && ZEN.el.querySelector("#zenActs"); if(!box) return;
+  const show = force || (!TIMER.running && elapsedSec()===0);
+  box.innerHTML = show ? `<span>${TIMER.act?"Studying":"What are you studying?"}</span>${allActivities().map(a=>`<button class="zen-chip ${TIMER.act===a.id?"on":""}" data-zact="${esc(a.id)}"><i style="background:${a.c}"></i>${esc(a.n)}</button>`).join("")}` : "";
+  box.hidden = !show;
+}
+function zenRipple(){ ZEN.ripples.push(performance.now()/1000); if(ZEN.ripples.length>6) ZEN.ripples.shift(); }
+
+/* ---------------- the frame loop ---------------- */
+function zenFrame(now){
+  if(!ZEN.on) return;
+  ZEN.raf = requestAnimationFrame(zenFrame);
+  const dt = Math.min(0.1, (now - ZEN.last)/1000); ZEN.last = now;
+  const t = (now - ZEN.t0)/1000, p = zenProgress();
+  if(!(ZEN.mini && ZEN.col)){
+    if(ZEN.mini && ZEN.sized !== ZEN.cv.clientWidth+"x"+ZEN.cv.clientHeight) zenResize();
+    try{ ZSCENE[ZEN.th.id].draw(ZEN.cx, ZEN.w, ZEN.h, t, dt, ZEN.st, p); }catch(err){ /* a drawing slip should never stop the timer */ }
+  }
+  /* the clock */
+  const e = elapsedSec(), shown = TIMER.endless ? e : Math.max(0, TIMER.total - e), txt = fmtClock(shown);
+  if(txt!==ZEN.lastClock){
+    ZEN.lastClock = txt; ZEN.el.querySelector("#zenClock").textContent = txt; ZEN.el.querySelector("#zenMClock").textContent = txt;
+    const arc = ZEN.el.querySelector("#zenArc"); arc.style.strokeDashoffset = String(1000*(1 - (TIMER.endless ? (e%3600)/3600 : (TIMER.total ? shown/TIMER.total : 0))));
+  }
+  const lbl = (TIMER.endless ? "Endless" : TIMER.mode==="focus" ? "Focus" : "Break") + (TIMER.act ? " · " + activityName(TIMER.act) : "") + (TIMER.running ? "" : (e ? " · paused" : ""));
+  if(lbl!==ZEN.lastLbl){
+    ZEN.lastLbl = lbl; ZEN.el.querySelector("#zenLbl").textContent = lbl;
+    ZEN.el.querySelector("#zenPlay").innerHTML = TIMER.running ? "❚❚ Pause" : (e ? "▶ Resume" : "▶ Start");
+    ZEN.el.querySelector("#zenMPlay").textContent = TIMER.running ? "❚❚" : "▶";
+    ZEN.el.querySelector("#zenMLbl").textContent = (TIMER.endless ? "Endless" : TIMER.mode==="focus" ? "Focus" : "Break") + (TIMER.running ? "" : (e ? " · paused" : ""));
+    ZEN.el.classList.toggle("brk", TIMER.mode!=="focus" && !TIMER.endless);
+    ZEN.el.classList.toggle("paused", !TIMER.running);
+    zenActs();
+  }
+}
+
+/* ---------------- scenes ---------------- */
+const zLerp = (a,b,k)=>a+(b-a)*k;
+function zHex(c){ const n = parseInt(c.slice(1),16); return [n>>16&255, n>>8&255, n&255]; }
+function zMix(a,b,k){ const x = zHex(a), y = zHex(b); return `rgb(${x.map((v,i)=>Math.round(zLerp(v,y[i],k))).join(",")})`; }
+function zGrad(cx, x0,y0,x1,y1, stops){ const g = cx.createLinearGradient(x0,y0,x1,y1); stops.forEach(([o,c])=>g.addColorStop(o,c)); return g; }
+function zGlow(cx, x, y, r, col, a){ const g = cx.createRadialGradient(x,y,0,x,y,r); g.addColorStop(0, col.replace("A", a)); g.addColorStop(1, col.replace("A", 0)); cx.fillStyle = g; cx.beginPath(); cx.arc(x,y,r,0,TAU); cx.fill(); }
+function zRipples(cx, w, h, col){
+  const now = performance.now()/1000;
+  ZEN.ripples = ZEN.ripples.filter(r=>now - r < 6);
+  ZEN.ripples.forEach(r0=>{ const k = (now - r0)/6;
+    for(let i=0;i<3;i++){ const kk = k - i*0.07; if(kk<=0) continue;
+      cx.strokeStyle = col.replace("A", (1-kk)*0.35); cx.lineWidth = 1.5;
+      cx.beginPath(); cx.ellipse(w/2, h/2, kk*Math.max(w,h)*0.6, kk*Math.max(w,h)*0.6*0.55, 0, 0, TAU); cx.stroke(); } });
+}
+const ZSCENE = {
+  /* 1 — deep space */
+  space:{
+    init(w,h){ const m = Math.min(w,h);
+      const stars = Array.from({length:Math.round(w*h/5000)}, ()=>({x:Math.random()*w, y:Math.random()*h, r:Math.random()*1.3+0.2, ph:Math.random()*TAU, sp:zr(0.3,1.6)}));
+      const N = 14, nodes = Array.from({length:N}, (_,i)=>{ const a = i/N*TAU + zr(-0.2,0.2), r = m*zr(0.3,0.44); return {a, r}; });
+      const edges = []; for(let i=0;i<N;i++){ edges.push([i,(i+1)%N]); if(Math.random()<0.35) edges.push([i,(i+3)%N]); }
+      return {stars, nodes, edges, shoot:null, next:zr(3,8)}; },
+    draw(cx,w,h,t,dt,s,p){
+      cx.fillStyle = zGrad(cx,0,0,0,h,[[0,"#0B0C10"],[1,"#111827"]]); cx.fillRect(0,0,w,h);
+      cx.globalCompositeOperation = "lighter";
+      [[0.25,0.3,200],[0.75,0.65,290],[0.5,0.85,170]].forEach(([fx,fy,hue],i)=>{
+        const x = w*(fx + 0.06*Math.sin(t*0.02 + i*2)), y = h*(fy + 0.05*Math.cos(t*0.017 + i)), hh = hue + 40*Math.sin(t*0.03 + i);
+        zGlow(cx, x, y, Math.max(w,h)*0.45, `hsla(${hh},70%,45%,A)`, 0.13); });
+      s.stars.forEach(st=>{ const a = 0.35 + 0.65*Math.abs(Math.sin(t*st.sp + st.ph)); cx.fillStyle = `rgba(220,235,255,${a})`; cx.fillRect(st.x, st.y, st.r, st.r); });
+      /* the constellation turns slowly; its stars light up as the session goes */
+      const rot = t*0.012, lit = Math.floor(p*s.nodes.length + 1e-6), pts = s.nodes.map(n=>[w/2 + Math.cos(n.a+rot)*n.r, h/2 + Math.sin(n.a+rot)*n.r*0.8]);
+      cx.lineWidth = 1;
+      s.edges.forEach(([a,b])=>{ const on = a < lit && b < lit; cx.strokeStyle = on ? "rgba(102,252,241,.35)" : "rgba(197,198,199,.07)"; cx.beginPath(); cx.moveTo(...pts[a]); cx.lineTo(...pts[b]); cx.stroke(); });
+      pts.forEach((q,i)=>{ const on = i < lit; if(on) zGlow(cx, q[0], q[1], 14 + 3*Math.sin(t*2+i), "rgba(102,252,241,A)", 0.55);
+        cx.fillStyle = on ? "#C9FFFB" : "rgba(197,198,199,.35)"; cx.beginPath(); cx.arc(q[0], q[1], on?2.4:1.6, 0, TAU); cx.fill(); });
+      /* shooting stars, now and then */
+      if(!s.shoot && t > s.next){ const a = zr(0.2,0.6); s.shoot = {x:zr(0,w*0.7), y:zr(0,h*0.4), vx:Math.cos(a)*zr(600,900), vy:Math.sin(a)*zr(600,900), life:0}; s.next = t + zr(7,16); }
+      if(s.shoot){ const k = s.shoot; k.life += dt; k.x += k.vx*dt; k.y += k.vy*dt; const al = Math.max(0, 1 - k.life/0.9);
+        const g = cx.createLinearGradient(k.x, k.y, k.x - k.vx*0.12, k.y - k.vy*0.12); g.addColorStop(0, `rgba(255,255,255,${al})`); g.addColorStop(1, "rgba(255,255,255,0)");
+        cx.strokeStyle = g; cx.lineWidth = 1.5; cx.beginPath(); cx.moveTo(k.x, k.y); cx.lineTo(k.x - k.vx*0.12, k.y - k.vy*0.12); cx.stroke(); if(al<=0) s.shoot = null; }
+      cx.globalCompositeOperation = "source-over";
+    }},
+  /* 2 — rainy window */
+  rain:{
+    init(w,h){ const cols = ["229,169,60","74,180,190","229,169,60","255,120,90","120,200,210"];
+      return {bok:Array.from({length:28}, ()=>({x:Math.random()*w, y:zr(h*0.2,h), r:zr(25,90), c:cols[Math.floor(Math.random()*cols.length)], ph:Math.random()*TAU, vx:zr(-6,6)})),
+        dots:Array.from({length:Math.round(w*h/4500)}, ()=>({x:Math.random()*w, y:Math.random()*h, r:zr(0.6,2.2)})),
+        drops:Array.from({length:Math.round(w/18)}, ()=>({x:Math.random()*w, y:Math.random()*h, r:zr(1.5,4), v:zr(20,140), hold:0}))}; },
+    draw(cx,w,h,t,dt,s){
+      cx.fillStyle = zGrad(cx,0,0,0,h,[[0,"#1A1A24"],[1,"#2E3A44"]]); cx.fillRect(0,0,w,h);
+      cx.globalCompositeOperation = "lighter";
+      s.bok.forEach(b=>{ b.x += b.vx*dt; if(b.x < -100) b.x = w+100; if(b.x > w+100) b.x = -100;
+        zGlow(cx, b.x, b.y + 6*Math.sin(t*0.3+b.ph), b.r*(1+0.08*Math.sin(t*0.7+b.ph)), `rgba(${b.c},A)`, 0.16 + 0.08*Math.sin(t*0.5+b.ph)); });
+      cx.globalCompositeOperation = "source-over";
+      cx.fillStyle = "rgba(26,30,40,.28)"; cx.fillRect(0,0,w,h);
+      s.dots.forEach(d=>{ cx.fillStyle = "rgba(200,215,230,.18)"; cx.beginPath(); cx.arc(d.x,d.y,d.r,0,TAU); cx.fill(); });
+      s.drops.forEach(d=>{
+        if(d.hold > 0) d.hold -= dt; else { d.y += d.v*dt*(d.r/3); if(Math.random() < 0.01) d.hold = zr(0.2,1.2); d.x += Math.sin(t*3 + d.y*0.05)*0.15; }
+        if(d.y > h + 20){ d.y = -10; d.x = Math.random()*w; d.r = zr(1.5,4); d.v = zr(20,140); }
+        const trail = cx.createLinearGradient(d.x, d.y - d.r*14, d.x, d.y);
+        trail.addColorStop(0, "rgba(180,200,215,0)"); trail.addColorStop(1, "rgba(180,200,215,.25)");
+        cx.strokeStyle = trail; cx.lineWidth = d.r*0.7; cx.beginPath(); cx.moveTo(d.x, d.y - d.r*14); cx.lineTo(d.x, d.y); cx.stroke();
+        cx.fillStyle = "rgba(210,225,240,.35)"; cx.beginPath(); cx.arc(d.x, d.y, d.r, 0, TAU); cx.fill();
+        cx.fillStyle = "rgba(255,255,255,.55)"; cx.beginPath(); cx.arc(d.x - d.r*0.3, d.y - d.r*0.35, d.r*0.3, 0, TAU); cx.fill(); });
+    }},
+  /* 3 — synthwave */
+  synth:{
+    init(w,h){ const hz = h*0.6, mts = [];
+      for(let x=-40; x<w+40; x+=zr(40,90)) mts.push([x, hz - zr(20, h*0.12)]);
+      return {hz, mts, stars:Array.from({length:120}, ()=>({x:Math.random()*w, y:Math.random()*hz*0.8, a:Math.random()}))}; },
+    draw(cx,w,h,t,dt,s){
+      const hz = s.hz;
+      cx.fillStyle = zGrad(cx,0,0,0,hz,[[0,"#0A0A12"],[0.55,"#2A0845"],[1,"#7A00FF"]]); cx.fillRect(0,0,w,hz+1);
+      s.stars.forEach(st=>{ cx.fillStyle = `rgba(255,220,255,${0.3+0.5*st.a*Math.abs(Math.sin(t*0.6+st.x))})`; cx.fillRect(st.x, st.y, 1.2, 1.2); });
+      /* the sun breathes on an 8 second cycle */
+      const R = Math.min(w,h)*0.2*(1 + 0.035*Math.sin(t*TAU/8)), sx = w/2, sy = hz - R*0.35;
+      cx.save(); cx.shadowColor = "#FF007F"; cx.shadowBlur = 60;
+      cx.fillStyle = zGrad(cx, 0, sy-R, 0, sy+R, [[0,"#FFE66D"],[0.5,"#FF7A59"],[1,"#FF007F"]]);
+      cx.beginPath(); cx.arc(sx, sy, R, 0, TAU); cx.fill(); cx.restore();
+      cx.fillStyle = "#2A0845";
+      for(let i=0;i<7;i++){ const yy = sy + R*0.1 + i*R*0.13, hh = 2 + i*1.6; cx.fillRect(sx-R-2, yy, R*2+4, hh); }
+      cx.fillStyle = "#16052b"; cx.beginPath(); cx.moveTo(-40, hz); s.mts.forEach(([x,y])=>cx.lineTo(x,y)); cx.lineTo(w+40, hz); cx.fill();
+      cx.fillStyle = zGrad(cx,0,hz,0,h,[[0,"#14031f"],[1,"#0A0A12"]]); cx.fillRect(0,hz,w,h-hz);
+      cx.save(); cx.strokeStyle = "rgba(255,0,127,.75)"; cx.shadowColor = "#FF007F"; cx.shadowBlur = 8; cx.lineWidth = 1.3;
+      const off = (t*0.35)%1;
+      for(let i=0;i<18;i++){ const z = (i + off)/18, y = hz + (h-hz)*Math.pow(z, 2.4); cx.globalAlpha = Math.min(1, z*1.6); cx.beginPath(); cx.moveTo(0,y); cx.lineTo(w,y); cx.stroke(); }
+      cx.globalAlpha = 1;
+      for(let k=-14;k<=14;k++){ cx.beginPath(); cx.moveTo(w/2 + k*w*0.012, hz); cx.lineTo(w/2 + k*w*0.16, h); cx.stroke(); }
+      cx.restore();
+      cx.fillStyle = zGrad(cx,0,hz-8,0,hz+30,[[0,"rgba(255,0,127,0)"],[0.4,"rgba(255,0,127,.35)"],[1,"rgba(255,0,127,0)"]]); cx.fillRect(0,hz-8,w,38);
+    }},
+  /* 4 — autumn library */
+  library:{
+    init(w,h){
+      const wood = document.createElement("canvas"); wood.width = Math.max(1,w); wood.height = Math.max(1,h); const g = wood.getContext("2d");
+      g.fillStyle = "#2C1810"; g.fillRect(0,0,w,h);
+      for(let x=0;x<w;x+=3){ g.fillStyle = `rgba(${zr(60,90)},${zr(30,45)},${zr(18,28)},${zr(0.08,0.25)})`; g.fillRect(x, 0, zr(1,3), h); }
+      for(let i=0;i<40;i++){ g.strokeStyle = "rgba(20,10,5,.25)"; g.beginPath(); const x0 = Math.random()*w; g.moveTo(x0,0); for(let y=0;y<h;y+=20) g.lineTo(x0 + 6*Math.sin(y*0.02 + i), y); g.stroke(); }
+      const win = {x:w*0.3, y:h*0.06, w:w*0.4, h:h*0.5};
+      const trees = []; for(let i=0;i<26;i++) trees.push({x:win.x + Math.random()*win.w, hgt:zr(0.25,0.6)*win.h, wd:zr(18,45), c:["#7a2e14","#a8461c","#1E3A2B","#8B261D","#b8621b"][i%5], row:i%2});
+      return {wood, win, trees, leaves:Array.from({length:16}, ()=>({x:win.x+Math.random()*win.w, y:win.y+Math.random()*win.h, r:Math.random()*TAU, s:zr(3,6), v:zr(15,35), c:["#d9822b","#a8461c","#e3b448","#8B261D"][Math.floor(Math.random()*4)]})),
+        dust:Array.from({length:70}, ()=>({x:Math.random(), y:Math.random(), v:zr(2,8), ph:Math.random()*TAU}))}; },
+    draw(cx,w,h,t,dt,s){
+      cx.drawImage(s.wood, 0, 0, w, h);
+      const W = s.win;
+      cx.save(); cx.beginPath(); cx.rect(W.x, W.y, W.w, W.h); cx.clip();
+      cx.fillStyle = zGrad(cx,0,W.y,0,W.y+W.h,[[0,"#f0b867"],[0.6,"#d9822b"],[1,"#7a3b1e"]]); cx.fillRect(W.x,W.y,W.w,W.h);
+      s.trees.forEach(tr=>{ const base = W.y + W.h, sway = Math.sin(t*0.6 + tr.x*0.05)*3; cx.fillStyle = tr.row ? tr.c : zMix(tr.c, "#3a1a0c", 0.35);
+        cx.beginPath(); cx.moveTo(tr.x - tr.wd, base); cx.lineTo(tr.x + sway, base - tr.hgt); cx.lineTo(tr.x + tr.wd, base); cx.fill(); });
+      s.leaves.forEach(l=>{ l.y += l.v*dt; l.x += Math.sin(t*1.3 + l.r)*0.6; l.r += dt*1.5; if(l.y > W.y + W.h){ l.y = W.y - 10; l.x = W.x + Math.random()*W.w; }
+        cx.save(); cx.translate(l.x, l.y); cx.rotate(l.r); cx.fillStyle = l.c; cx.beginPath(); cx.ellipse(0,0,l.s,l.s*0.5,0,0,TAU); cx.fill(); cx.restore(); });
+      cx.restore();
+      cx.strokeStyle = "#3a2214"; cx.lineWidth = 14; cx.strokeRect(W.x, W.y, W.w, W.h);
+      cx.lineWidth = 6; cx.beginPath(); cx.moveTo(W.x + W.w/2, W.y); cx.lineTo(W.x + W.w/2, W.y+W.h); cx.moveTo(W.x, W.y + W.h*0.45); cx.lineTo(W.x+W.w, W.y + W.h*0.45); cx.stroke();
+      cx.fillStyle = "#4a2d1a"; cx.fillRect(W.x - 24, W.y + W.h + 4, W.w + 48, 14);
+      /* a shaft of light with dust in it */
+      cx.save(); cx.globalCompositeOperation = "lighter";
+      cx.fillStyle = zGrad(cx, W.x, W.y+W.h, W.x - W.w*0.2, h, [[0,"rgba(244,232,193,.10)"],[1,"rgba(244,232,193,0)"]]);
+      cx.beginPath(); cx.moveTo(W.x + W.w*0.05, W.y + W.h); cx.lineTo(W.x + W.w*0.95, W.y + W.h); cx.lineTo(W.x + W.w*0.75, h); cx.lineTo(W.x - W.w*0.25, h); cx.fill();
+      s.dust.forEach(d=>{ d.y -= d.v*dt/h; if(d.y < 0) d.y = 1; const x = (W.x - W.w*0.2) + d.x*W.w*1.15 + 10*Math.sin(t*0.4 + d.ph), y = W.y + W.h + d.y*(h - W.y - W.h);
+        cx.fillStyle = `rgba(255,220,150,${0.25 + 0.25*Math.sin(t + d.ph)})`; cx.fillRect(x, y, 1.6, 1.6); });
+      /* candlelight from the corners */
+      const fl = 0.75 + 0.12*Math.sin(t*7.3) + 0.08*Math.sin(t*13.1) + 0.05*Math.sin(t*2.1);
+      zGlow(cx, w*0.06, h*0.95, Math.min(w,h)*0.55, "rgba(255,170,80,A)", 0.22*fl);
+      zGlow(cx, w*0.94, h*0.95, Math.min(w,h)*0.45, "rgba(255,170,80,A)", 0.16*fl);
+      cx.restore();
+    }},
+  /* 5 — zen garden (a light scene) */
+  zen:{
+    init(w,h){
+      const stones = [[w*0.18,h*0.72,70,40],[w*0.26,h*0.78,38,24],[w*0.8,h*0.7,90,52],[w*0.72,h*0.82,40,26]];
+      const bud = []; for(let i=0;i<70;i++){ const k = Math.random(); bud.push({k, dx:zr(-22,22), dy:zr(-18,18), r:zr(3,7)}); }
+      return {stones, bud, petals:Array.from({length:34}, ()=>({x:Math.random()*w, y:Math.random()*h, r:Math.random()*TAU, s:zr(3,6), v:zr(14,30), ph:Math.random()*TAU}))}; },
+    draw(cx,w,h,t,dt,s){
+      cx.fillStyle = "#EFE8D8"; cx.fillRect(0,0,w,h);
+      cx.strokeStyle = "rgba(170,155,120,.28)"; cx.lineWidth = 1.2;
+      for(let y=10;y<h;y+=12){ cx.beginPath(); for(let x=0;x<=w;x+=24){ const yy = y + 2.5*Math.sin(x*0.012 + y*0.03); x ? cx.lineTo(x,yy) : cx.moveTo(x,yy); } cx.stroke(); }
+      s.stones.forEach(([x,y,rx,ry])=>{
+        cx.fillStyle = "#EFE8D8"; cx.beginPath(); cx.ellipse(x,y,rx*1.9,ry*1.9,0,0,TAU); cx.fill();
+        for(let k=1;k<=4;k++){ cx.strokeStyle = "rgba(170,155,120,.32)"; cx.beginPath(); cx.ellipse(x,y,rx*(1+k*0.22),ry*(1+k*0.24),0,0,TAU); cx.stroke(); }
+        cx.fillStyle = zGrad(cx,x,y-ry,x,y+ry,[[0,"#a3a39b"],[1,"#6e6e66"]]); cx.beginPath(); cx.ellipse(x,y,rx,ry,0,0,TAU); cx.fill();
+        cx.fillStyle = "rgba(91,112,82,.35)"; cx.beginPath(); cx.ellipse(x - rx*0.2, y - ry*0.5, rx*0.4, ry*0.25, 0, 0, TAU); cx.fill(); });
+      zRipples(cx, w, h, "rgba(110,95,70,A)");
+      /* a cherry branch from the top right corner */
+      const sway = Math.sin(t*0.5)*4, P0 = [w+10, -10], P1 = [w*0.82, h*0.12 + sway], P2 = [w*0.66, h*0.06], P3 = [w*0.55, h*0.2 + sway];
+      cx.strokeStyle = "#4b3a2f"; cx.lineWidth = 9; cx.lineCap = "round"; cx.beginPath(); cx.moveTo(...P0); cx.bezierCurveTo(...P1, ...P2, ...P3); cx.stroke();
+      cx.lineWidth = 4; cx.beginPath(); cx.moveTo(w*0.8, h*0.08 + sway*0.5); cx.quadraticCurveTo(w*0.76, h*0.22, w*0.7, h*0.28 + sway); cx.stroke();
+      const bez = k=>{ const u = 1-k; return [u*u*u*P0[0] + 3*u*u*k*P1[0] + 3*u*k*k*P2[0] + k*k*k*P3[0], u*u*u*P0[1] + 3*u*u*k*P1[1] + 3*u*k*k*P2[1] + k*k*k*P3[1]]; };
+      s.bud.forEach(b=>{ const [x,y] = bez(0.15 + b.k*0.85); cx.fillStyle = b.r > 5 ? "#F3C1C6" : "#f7d6da"; cx.beginPath(); cx.arc(x + b.dx, y + b.dy, b.r, 0, TAU); cx.fill(); });
+      s.petals.forEach(q=>{ q.y += q.v*dt; q.x += Math.sin(t*0.9 + q.ph)*0.7 - 0.15; q.r += dt*(0.8 + Math.sin(q.ph)); if(q.y > h + 10 || q.x < -10){ q.y = -10; q.x = zr(w*0.3, w + 20); }
+        cx.save(); cx.translate(q.x,q.y); cx.rotate(q.r); cx.fillStyle = "rgba(243,193,198,.9)"; cx.beginPath(); cx.ellipse(0,0,q.s,q.s*0.55,0,0,TAU); cx.fill(); cx.restore(); });
+    }},
+  /* 6 — deep sea */
+  sea:{
+    init(w,h){ return {
+      jel:Array.from({length:7}, (_,i)=>({x:zr(w*0.05,w*0.95), y:zr(0,h), s:zr(18,44), ph:Math.random()*TAU, c:i%3===0 ? "255,101,163" : "0,229,255", v:zr(8,20)})),
+      snow:Array.from({length:120}, ()=>({x:Math.random()*w, y:Math.random()*h, v:zr(3,12), r:zr(0.5,1.6)}))}; },
+    draw(cx,w,h,t,dt,s){
+      cx.fillStyle = zGrad(cx,0,0,0,h,[[0,"#0A2540"],[1,"#051329"]]); cx.fillRect(0,0,w,h);
+      cx.save(); cx.globalCompositeOperation = "lighter";
+      for(let i=0;i<7;i++){ const x = w*(i/6) + 60*Math.sin(t*0.15 + i), a = 0.04 + 0.03*Math.sin(t*0.4 + i*1.7);
+        cx.fillStyle = zGrad(cx,0,0,0,h*0.85,[[0,`rgba(120,220,255,${a})`],[1,"rgba(120,220,255,0)"]]);
+        cx.beginPath(); cx.moveTo(x-30,0); cx.lineTo(x+30,0); cx.lineTo(x+160 + 40*Math.sin(t*0.2+i), h*0.85); cx.lineTo(x-20 + 40*Math.sin(t*0.2+i), h*0.85); cx.fill(); }
+      s.snow.forEach(q=>{ q.y -= q.v*dt*0.4; q.x += Math.sin(t*0.3 + q.y*0.02)*0.1; if(q.y < -5){ q.y = h+5; q.x = Math.random()*w; }
+        cx.fillStyle = "rgba(180,230,255,.35)"; cx.fillRect(q.x, q.y, q.r, q.r); });
+      s.jel.forEach(j=>{ const pulse = Math.sin(t*1.6 + j.ph); j.y -= j.v*dt*(0.6 + Math.max(0,pulse)); if(j.y < -j.s*4){ j.y = h + j.s*2; j.x = zr(w*0.05, w*0.95); }
+        const x = j.x + 10*Math.sin(t*0.3 + j.ph), y = j.y, rx = j.s*(1 + 0.12*pulse), ry = j.s*0.8*(1 - 0.08*pulse);
+        zGlow(cx, x, y, j.s*3, `rgba(${j.c},A)`, 0.18);
+        cx.fillStyle = `rgba(${j.c},.35)`; cx.beginPath(); cx.ellipse(x, y, rx, ry, 0, Math.PI, TAU); cx.closePath(); cx.fill();
+        cx.strokeStyle = `rgba(${j.c},.45)`; cx.lineWidth = 1.2;
+        for(let k=0;k<5;k++){ const tx = x - rx*0.7 + k*rx*0.35; cx.beginPath(); cx.moveTo(tx, y);
+          for(let q=1;q<=6;q++) cx.lineTo(tx + 5*Math.sin(t*2 + q*0.8 + k + j.ph), y + q*j.s*0.45); cx.stroke(); } });
+      cx.restore();
+    }},
+  /* 7 — forest canopy */
+  forest:{
+    init(w,h){ const leaves = [];
+      for(let i=0;i<150;i++){ const edge = Math.random(); let x, y;
+        if(edge < 0.5){ x = Math.random()*w; y = zr(-40, h*0.28); } else if(edge < 0.75){ x = zr(-40, w*0.18); y = Math.random()*h; } else { x = zr(w*0.82, w+40); y = Math.random()*h; }
+        leaves.push({x, y, r:zr(28,80), c:["#1B4332","#2D6A4F","#40916C","#52B788","#245c40"][Math.floor(Math.random()*5)], ph:Math.random()*TAU}); }
+      leaves.sort((a,b)=>a.r-b.r);
+      return {leaves, motes:Array.from({length:60}, ()=>({x:Math.random()*w, y:Math.random()*h, v:zr(4,12), ph:Math.random()*TAU}))}; },
+    draw(cx,w,h,t,dt,s,p){
+      cx.fillStyle = zGrad(cx,0,0,0,h,[[0,"#cdeccf"],[0.35,"#74c69d"],[1,"#2D6A4F"]]); cx.fillRect(0,0,w,h);
+      cx.save(); cx.globalCompositeOperation = "lighter";
+      const ang = -0.5 + p*0.5 + 0.05*Math.sin(t*0.1), ox = w*0.55, oy = -h*0.1;
+      for(let i=0;i<6;i++){ const a = ang + (i-2.5)*0.12, al = 0.07 + 0.05*Math.sin(t*0.3 + i*1.3), L = h*1.6;
+        cx.fillStyle = zGrad(cx, ox, oy, ox + Math.sin(a)*L, oy + Math.cos(a)*L, [[0,`rgba(255,214,120,${al})`],[1,"rgba(255,214,120,0)"]]);
+        cx.beginPath(); cx.moveTo(ox, oy); cx.lineTo(ox + Math.sin(a-0.03)*L, oy + Math.cos(a-0.03)*L); cx.lineTo(ox + Math.sin(a+0.03)*L, oy + Math.cos(a+0.03)*L); cx.fill(); }
+      cx.restore();
+      s.leaves.forEach(l=>{ const sx = Math.sin(t*0.5 + l.ph)*6, sy = Math.cos(t*0.4 + l.ph)*3;
+        cx.fillStyle = l.c; cx.beginPath(); cx.ellipse(l.x + sx, l.y + sy, l.r, l.r*0.62, l.ph, 0, TAU); cx.fill();
+        cx.fillStyle = "rgba(255,230,140,.08)"; cx.beginPath(); cx.ellipse(l.x + sx - l.r*0.2, l.y + sy - l.r*0.2, l.r*0.5, l.r*0.3, l.ph, 0, TAU); cx.fill(); });
+      s.motes.forEach(m=>{ m.y -= m.v*dt; m.x += Math.sin(t*0.5 + m.ph)*0.3; if(m.y < 0){ m.y = h; m.x = Math.random()*w; }
+        cx.fillStyle = `rgba(255,236,170,${0.35 + 0.3*Math.sin(t*2 + m.ph)})`; cx.beginPath(); cx.arc(m.x, m.y, 1.6, 0, TAU); cx.fill(); });
+      cx.fillStyle = zGrad(cx,0,h*0.7,0,h,[[0,"rgba(248,249,250,0)"],[1,"rgba(248,249,250,.18)"]]); cx.fillRect(0,h*0.7,w,h*0.3);
+    }},
+  /* 8 — coffee shop at sunset; the sky follows the session */
+  cafe:{
+    init(w,h){ const wy = h*0.7, bl = []; let x = -10;
+      while(x < w + 20){ const bw = zr(30,80), bh = zr(h*0.12, h*0.42); const wins = [];
+        for(let yy = wy - bh + 10; yy < wy - 8; yy += 14) for(let xx = x + 6; xx < x + bw - 8; xx += 12) wins.push([xx, yy, Math.random()]);
+        bl.push({x, w:bw, h:bh, wins}); x += bw + zr(2,10); }
+      return {wy, bl}; },
+    draw(cx,w,h,t,dt,s,p){
+      const k = p, wy = s.wy;
+      cx.fillStyle = zGrad(cx,0,0,0,wy,[[0,zMix("#F59E0B","#2E1A47",k)],[0.6,zMix("#F97316","#6D28D9",k)],[1,zMix("#FDBA74","#C084FC",k)]]); cx.fillRect(0,0,w,wy);
+      const sunY = wy*0.35 + k*wy*0.75; cx.save(); cx.shadowColor = "#FFD089"; cx.shadowBlur = 50; cx.fillStyle = zMix("#FFE7A8","#FF8A5B",k);
+      cx.beginPath(); cx.arc(w*0.68, sunY, Math.min(w,h)*0.07, 0, TAU); cx.fill(); cx.restore();
+      cx.fillStyle = zMix("#5b3a2a","#1a1030",k);
+      s.bl.forEach(b=>{ cx.fillRect(b.x, wy - b.h, b.w, b.h); });
+      s.bl.forEach(b=>b.wins.forEach(([x,y,r])=>{ if(r < k*0.9){ cx.fillStyle = `rgba(255,214,140,${0.55 + 0.3*Math.sin(t*0.5 + r*20)})`; cx.fillRect(x, y, 5, 6); } }));
+      /* the cafe: dark frame, window bars, counter and a steaming mug */
+      cx.fillStyle = "#3B2314"; cx.fillRect(0, wy, w, h - wy);
+      cx.fillStyle = "#4e2f1b"; cx.fillRect(0, wy, w, 10);
+      cx.fillStyle = "rgba(255,200,140,.08)"; cx.fillRect(0, wy+10, w, 3);
+      cx.strokeStyle = "#2a170c"; cx.lineWidth = 10; cx.beginPath(); for(let i=1;i<4;i++){ cx.moveTo(w*i/4, 0); cx.lineTo(w*i/4, wy); } cx.stroke();
+      cx.lineWidth = 18; cx.strokeRect(0, 0, w, wy);
+      const mx = w*0.16, my = wy - 2, mw = Math.min(w,h)*0.07, mh = mw*1.05;
+      cx.fillStyle = "#FFFBEB"; cx.beginPath(); cx.moveTo(mx - mw/2, my - mh); cx.lineTo(mx + mw/2, my - mh); cx.lineTo(mx + mw*0.42, my); cx.lineTo(mx - mw*0.42, my); cx.closePath(); cx.fill();
+      cx.strokeStyle = "#FFFBEB"; cx.lineWidth = mw*0.12; cx.beginPath(); cx.arc(mx + mw*0.55, my - mh*0.55, mh*0.22, -1.2, 1.2); cx.stroke();
+      cx.fillStyle = "#D97706"; cx.fillRect(mx - mw/2, my - mh*0.7, mw*0.98, mh*0.12);
+      for(let i=0;i<3;i++){ const ph = t*0.5 + i*2.1, base = my - mh - 4;
+        cx.strokeStyle = `rgba(255,251,235,${0.18 + 0.08*Math.sin(ph)})`; cx.lineWidth = 3; cx.beginPath();
+        for(let q=0;q<=20;q++){ const yy = base - q*4.5, xx = mx - mw*0.2 + i*mw*0.2 + 8*Math.sin(q*0.35 - t*1.5 + i) * (q/20 + 0.2); q ? cx.lineTo(xx,yy) : cx.moveTo(xx,yy); } cx.stroke(); }
+      zGlow(cx, w*0.5, -h*0.1, Math.max(w,h)*0.5, "rgba(255,190,110,A)", 0.12);
+    }},
+  /* 9 — geometric waves; restless while you focus, slow on a break */
+  wave:{
+    init(w,h){ return {k:1, parts:Array.from({length:36}, (_,i)=>({wv:i%5, x:Math.random(), v:zr(0.02,0.07)}))}; },
+    draw(cx,w,h,t,dt,s){
+      cx.fillStyle = "#121212"; cx.fillRect(0,0,w,h);
+      cx.strokeStyle = "#1c1c1c"; cx.lineWidth = 1;
+      for(let x=0;x<w;x+=48){ cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x,h); cx.stroke(); }
+      for(let y=0;y<h;y+=48){ cx.beginPath(); cx.moveTo(0,y); cx.lineTo(w,y); cx.stroke(); }
+      const target = !TIMER.running ? 0.6 : (TIMER.mode==="focus" || TIMER.endless) ? 1.6 : 0.5;
+      s.k = zLerp(s.k, target, Math.min(1, dt*0.6));
+      const wy = i=>x=>h*0.66 + i*h*0.045 + Math.sin(x*0.006*s.k*(1 + i*0.15) + t*(0.4 + i*0.12)*s.k) * h*0.05*(1 - i*0.12) + Math.sin(x*0.0021 + t*0.2 + i)*h*0.03;
+      cx.save(); cx.globalCompositeOperation = "lighter";
+      for(let i=0;i<5;i++){ const f = wy(i); cx.strokeStyle = i%2 ? `rgba(3,218,198,${0.5 - i*0.07})` : `rgba(187,134,252,${0.55 - i*0.07})`; cx.lineWidth = 1.6;
+        cx.beginPath(); for(let x=0;x<=w;x+=8){ const y = f(x); x ? cx.lineTo(x,y) : cx.moveTo(x,y); } cx.stroke(); }
+      s.parts.forEach(q=>{ q.x += q.v*dt*s.k; if(q.x > 1) q.x -= 1; const x = q.x*w, y = wy(q.wv)(x);
+        zGlow(cx, x, y, 9, q.wv%2 ? "rgba(3,218,198,A)" : "rgba(187,134,252,A)", 0.6); cx.fillStyle = "#fff"; cx.fillRect(x-1, y-1, 2, 2); });
+      cx.restore();
+    }},
+  /* 10 — fireplace */
+  fire:{
+    init(w,h){
+      const fw = Math.min(w*0.46, 560), fh = Math.min(h*0.42, 340), fx = w/2 - fw/2, fy = h - fh;
+      const st = document.createElement("canvas"); st.width = Math.max(1,w); st.height = Math.max(1,h); const g = st.getContext("2d");
+      for(let y = fy - 60; y < h; y += 26) for(let x = fx - 80 + (Math.floor(y/26)%2)*20; x < fx + fw + 80; x += zr(40,60)){
+        const c = Math.floor(zr(45,75)); g.fillStyle = `rgb(${c},${c-4},${c-8})`; g.beginPath(); g.roundRect ? g.roundRect(x, y, zr(34,54), 22, 6) : g.rect(x, y, 44, 22); g.fill(); }
+      g.globalCompositeOperation = "destination-out"; g.beginPath(); g.moveTo(fx, h); g.lineTo(fx, fy + fw*0.25); g.quadraticCurveTo(fx + fw/2, fy - fw*0.05, fx + fw, fy + fw*0.25); g.lineTo(fx + fw, h); g.fill();
+      return {fx, fy, fw, fh, stone:st, fl:[], emb:[]}; },
+    draw(cx,w,h,t,dt,s){
+      cx.fillStyle = zGrad(cx,0,0,0,h,[[0,"#0d1626"],[1,"#1D3557"]]); cx.fillRect(0,0,w,h);
+      const {fx, fy, fw} = s, cxm = fx + fw/2, logY = h - 30, flick = 0.75 + 0.15*Math.sin(t*9) + 0.1*Math.sin(t*5.3);
+      cx.fillStyle = "#0b0605"; cx.fillRect(fx, fy, fw, h - fy);
+      zGlow(cx, cxm, logY - 40, fw*0.8, "rgba(255,120,40,A)", 0.35*flick);
+      for(let i=0;i<7;i++) s.fl.push({x:cxm + zr(-fw*0.3, fw*0.3), y:logY - 10, vx:zr(-12,12), vy:zr(-150,-80), life:1, sz:zr(20,46)});
+      if(Math.random() < 0.25) s.emb.push({x:cxm + zr(-fw*0.25, fw*0.25), y:logY - 40, vx:zr(-15,15), vy:zr(-70,-35), life:1});
+      cx.save(); cx.globalCompositeOperation = "lighter";
+      s.fl = s.fl.filter(f=>{ f.life -= dt*1.4; f.x += (f.vx + Math.sin(t*6 + f.y*0.05)*20)*dt; f.y += f.vy*dt; if(f.life <= 0) return false;
+        const L = f.life, col = L > 0.7 ? "255,230,140" : L > 0.4 ? "255,140,40" : "230,57,70";
+        zGlow(cx, f.x, f.y, f.sz*L + 4, `rgba(${col},A)`, 0.35*L); return true; });
+      s.emb = s.emb.filter(e=>{ e.life -= dt*0.25; e.x += (e.vx + Math.sin(t*2 + e.y*0.03)*10)*dt; e.y += e.vy*dt; if(e.life <= 0 || e.y < 0) return false;
+        cx.fillStyle = `rgba(255,${Math.round(150 + 80*e.life)},80,${e.life})`; cx.fillRect(e.x, e.y, 2, 2); return true; });
+      cx.restore();
+      cx.fillStyle = "#3b2416"; cx.save(); cx.translate(cxm, logY); cx.rotate(0.08); cx.fillRect(-fw*0.32, -12, fw*0.64, 22); cx.rotate(-0.18); cx.fillStyle = "#2c1a10"; cx.fillRect(-fw*0.28, -18, fw*0.56, 20); cx.restore();
+      cx.drawImage(s.stone, 0, 0, w, h);
+      cx.fillStyle = "#2a2d33"; cx.fillRect(fx - 100, fy - 74, fw + 200, 18);
+      zGlow(cx, w/2, h/2, Math.min(w,h)*0.45, "rgba(251,139,36,A)", 0.07 + 0.04*flick);
+    }}
+};
+
+/* ---------------- sound: everything is synthesised ---------------- */
+const ZA = {ctx:null, master:null, amb:null, mus:null, keep:[], timers:[], seq:null, buf:{}};
+function zaInit(){
+  if(ZA.ctx) return true;
+  const C = window.AudioContext || window.webkitAudioContext; if(!C) return false;
+  try{ ZA.ctx = new C(); }catch(e){ return false; }
+  const c = ZA.ctx;
+  const comp = c.createDynamicsCompressor(); comp.threshold.value = -18; comp.ratio.value = 3; comp.connect(c.destination);
+  ZA.master = c.createGain(); ZA.master.connect(comp);
+  ZA.amb = c.createGain(); ZA.amb.connect(ZA.master); ZA.mus = c.createGain(); ZA.mus.connect(ZA.master);
+  const len = c.sampleRate*4, mk = fill=>{ const b = c.createBuffer(2, len, c.sampleRate); for(let ch=0;ch<2;ch++) fill(b.getChannelData(ch)); return b; };
+  ZA.buf.white = mk(d=>{ for(let i=0;i<d.length;i++) d[i] = Math.random()*2-1; });
+  ZA.buf.pink = mk(d=>{ let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0; for(let i=0;i<d.length;i++){ const w = Math.random()*2-1;
+    b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759; b2=0.969*b2+w*0.153852; b3=0.8665*b3+w*0.3104856; b4=0.55*b4+w*0.5329522; b5=-0.7616*b5-w*0.016898;
+    d[i]=(b0+b1+b2+b3+b4+b5+b6+w*0.5362)*0.11; b6=w*0.115926; } });
+  ZA.buf.brown = mk(d=>{ let l = 0; for(let i=0;i<d.length;i++){ l = (l + 0.02*(Math.random()*2-1))/1.02; d[i] = l*3.5; } });
+  return true;
+}
+function zaResume(){ if(ZA.ctx && ZA.ctx.state==="suspended") ZA.ctx.resume().catch(()=>{}); zaNote(); }
+function zaNote(){ const n = ZEN.el && ZEN.el.querySelector("#zenSndNote"); if(!n) return;
+  n.textContent = !ZA.ctx ? "This browser can't play generated sound." : ZA.ctx.state==="suspended" ? "Tap anywhere to let the sound start." : "Ambience and music are generated live for each scene — no downloads, and they never repeat exactly."; }
+function zaLevels(){
+  if(!ZA.ctx) return; const P = zenPrefs(), now = ZA.ctx.currentTime, m = P.muted ? 0 : 1;
+  ZA.amb.gain.setTargetAtTime(m*Math.pow(P.amb/100, 1.6)*1.1, now, 0.15);
+  ZA.mus.gain.setTargetAtTime(m*Math.pow(P.mus/100, 1.6)*0.9, now, 0.15);
+}
+function zaStop(full){
+  ZA.timers.forEach(x=>{ clearTimeout(x); clearInterval(x); }); ZA.timers = [];
+  ZA.keep.forEach(n=>{ try{ n.stop && n.stop(); }catch(e){} try{ n.disconnect(); }catch(e){} }); ZA.keep = [];
+  if(full && ZA.ctx){ try{ ZA.ctx.suspend(); }catch(e){} }
+}
+function zaStart(){
+  if(!zaInit()) return zaNote();
+  const c = ZA.ctx, now = c.currentTime;
+  ZA.amb.gain.cancelScheduledValues(now); ZA.mus.gain.cancelScheduledValues(now);
+  ZA.amb.gain.setValueAtTime(0, now); ZA.mus.gain.setValueAtTime(0, now);
+  zaStop(false); zaResume();
+  const th = ZEN.th; if(!th) return;
+  try{ ZAMB[th.amb](); }catch(e){}
+  try{ ZMUS[th.mus](); }catch(e){}
+  const P = zenPrefs(), m = P.muted ? 0 : 1;
+  ZA.amb.gain.linearRampToValueAtTime(m*Math.pow(P.amb/100,1.6)*1.1, now + 2);
+  ZA.mus.gain.linearRampToValueAtTime(m*Math.pow(P.mus/100,1.6)*0.9, now + 3);
+  zaNote();
+}
+/* building blocks */
+const zk = n=>{ ZA.keep.push(n); return n; };
+function zNoise(type){ const s = zk(ZA.ctx.createBufferSource()); s.buffer = ZA.buf[type]; s.loop = true; s.loopStart = Math.random(); s.start(0, Math.random()*3); return s; }
+function zF(type, f, q){ const n = zk(ZA.ctx.createBiquadFilter()); n.type = type; n.frequency.value = f; if(q!=null) n.Q.value = q; return n; }
+function zG(v){ const g = zk(ZA.ctx.createGain()); g.gain.value = v; return g; }
+function zChain(...n){ for(let i=0;i<n.length-1;i++) n[i].connect(n[i+1]); return n[n.length-1]; }
+function zLfo(param, rate, depth){ const o = zk(ZA.ctx.createOscillator()); o.frequency.value = rate; const g = zG(depth); o.connect(g); g.connect(param); o.start(); return o; }
+function zEvery(a, b, fn){ const go = ()=>{ if(!ZEN.on) return; try{ fn(); }catch(e){} ZA.timers.push(setTimeout(go, zr(a,b))); }; ZA.timers.push(setTimeout(go, zr(a,b)*0.5)); }
+function zBurst(dest, {f=2000, q=1, type="bandpass", dur=0.03, g=0.1, src="white", at=0, atk=0.002}){
+  const c = ZA.ctx, t = c.currentTime + at, s = c.createBufferSource(); s.buffer = ZA.buf[src];
+  const fl = c.createBiquadFilter(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+  const e = c.createGain(); e.gain.setValueAtTime(0, t); e.gain.linearRampToValueAtTime(g, t + atk); e.gain.exponentialRampToValueAtTime(0.0001, t + atk + dur);
+  s.connect(fl); fl.connect(e); e.connect(dest); s.start(t, Math.random()*3); s.stop(t + atk + dur + 0.05);
+}
+function zTone(dest, {f=440, type="sine", t=0, dur=1, g=0.1, atk=0.01, rel=null, f2=null, det=0, lp=null}){
+  const c = ZA.ctx, t0 = c.currentTime + t, o = c.createOscillator(); o.type = type; o.frequency.setValueAtTime(f, t0); o.detune.value = det;
+  if(f2) o.frequency.exponentialRampToValueAtTime(f2, t0 + dur);
+  const e = c.createGain(); e.gain.setValueAtTime(0, t0); e.gain.linearRampToValueAtTime(g, t0 + atk);
+  e.gain.exponentialRampToValueAtTime(0.0001, t0 + atk + (rel!=null ? rel : dur));
+  let last = o; if(lp){ const fl = c.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = lp; o.connect(fl); last = fl; }
+  last.connect(e); e.connect(dest); o.start(t0); o.stop(t0 + atk + (rel!=null ? rel : dur) + 0.1);
+}
+const mf = m => 440*Math.pow(2, (m-69)/12);
+function zPluck(dest, m, t, g, bright){ zTone(dest, {f:mf(m), type:"triangle", t, g, atk:0.004, dur:bright?1.6:2.2, lp:bright?3200:1800}); zTone(dest, {f:mf(m)*2, type:"sine", t, g:g*0.3, atk:0.004, dur:0.6}); }
+function zKey(dest, m, t, g, dur){ zTone(dest, {f:mf(m), type:"sine", t, g, atk:0.01, dur:dur||2.4}); zTone(dest, {f:mf(m)*2, type:"sine", t, g:g*0.22, atk:0.01, dur:(dur||2.4)*0.5}); zTone(dest, {f:mf(m)*3.01, type:"sine", t, g:g*0.06, atk:0.005, dur:0.4}); }
+function zPad(dest, m, t, len, g, type){ for(const d of [-7,7]) zTone(dest, {f:mf(m), type:type||"sine", t, g:g/2, atk:len*0.35, rel:len*0.9, det:d, lp:1400}); }
+/* a little step sequencer, scheduled ahead on the audio clock */
+function zSeq(bpm, steps, fn){
+  const c = ZA.ctx, st = 60/bpm/4; let n = 0, next = c.currentTime + 0.2;
+  const tick = ()=>{ if(!ZEN.on) return; while(next < c.currentTime + 0.35){ try{ fn(n % steps, next - c.currentTime, Math.floor(n/steps), st); }catch(e){} n++; next += st; } };
+  tick(); ZA.timers.push(setInterval(tick, 60));
+}
+/* ambiences */
+const ZAMB = {
+  space(){ const out = zChain(zF("lowpass", 700, 0.7), zG(0.5), ZA.amb);
+    [[55,"sine",0.35],[82.4,"triangle",0.16],[110.2,"sine",0.12],[164.8,"sine",0.05]].forEach(([f,ty,g],i)=>{ const o = zk(ZA.ctx.createOscillator()); o.type = ty; o.frequency.value = f; o.detune.value = zr(-6,6);
+      const gg = zG(g); o.connect(gg); gg.connect(out); zLfo(gg.gain, 0.03 + i*0.017, g*0.5); o.start(); });
+    zChain(zNoise("pink"), zF("lowpass", 380), zG(0.06), ZA.amb); },
+  rain(){ zChain(zNoise("white"), zF("highpass", 700), zF("lowpass", 7000), zG(0.2), ZA.amb);
+    const pat = zG(0.07); zChain(zNoise("pink"), zF("bandpass", 2600, 0.6), pat, ZA.amb); zLfo(pat.gain, 0.23, 0.03);
+    zChain(zNoise("brown"), zF("lowpass", 300), zG(0.16), ZA.amb);
+    zEvery(22000, 55000, ()=>{ zBurst(ZA.amb, {src:"brown", type:"lowpass", f:zr(110,220), q:0.5, atk:1.2, dur:5, g:0.55}); });
+    zEvery(30, 160, ()=>{ zBurst(ZA.amb, {f:zr(2500,6000), q:2, dur:0.012, g:zr(0.01,0.04)}); }); },
+  night(){ zChain(zNoise("brown"), zF("lowpass", 260), zG(0.18), ZA.amb); const w = zG(0.03); zChain(zNoise("pink"), zF("bandpass", 450, 0.8), w, ZA.amb); zLfo(w.gain, 0.06, 0.02); },
+  library(){ zChain(zNoise("brown"), zF("lowpass", 260), zG(0.18), ZA.amb);
+    zEvery(40, 260, ()=>{ zBurst(ZA.amb, {f:zr(1500,4500), q:zr(1,4), dur:zr(0.005,0.025), g:zr(0.02,0.09)}); });
+    let tk = 0; ZA.timers.push(setInterval(()=>{ if(!ZEN.on) return; zBurst(ZA.amb, {f:(tk++%2)?2400:3100, q:8, dur:0.02, g:0.05}); }, 1000));
+    zEvery(25000, 50000, ()=>{ for(let i=0;i<4;i++) zBurst(ZA.amb, {src:"pink", f:zr(2000,4000), q:0.7, dur:zr(0.05,0.12), g:0.05, at:i*zr(0.06,0.12), atk:0.02}); }); },
+  stream(){ const bp = zF("bandpass", 1100, 0.6); zChain(zNoise("pink"), bp, zG(0.42), ZA.amb); zLfo(bp.frequency, 0.21, 380);
+    const hi = zG(0.025); zChain(zNoise("white"), zF("highpass", 3500), hi, ZA.amb); zLfo(hi.gain, 0.37, 0.012);
+    zEvery(16000, 32000, ()=>{ zTone(ZA.amb, {f:240, f2:180, dur:0.18, g:0.32, atk:0.002}); zBurst(ZA.amb, {f:900, q:3, dur:0.05, g:0.18});
+      zTone(ZA.amb, {f:230, f2:175, t:0.14, dur:0.15, g:0.14, atk:0.002}); }); },
+  sea(){ const g = zG(0.55); zChain(zNoise("brown"), zF("lowpass", 170), g, ZA.amb); zLfo(g.gain, 0.07, 0.3);
+    zChain(zNoise("pink"), zF("lowpass", 500), zG(0.05), ZA.amb);
+    zEvery(1500, 6000, ()=>{ const n = Math.floor(zr(1,4)); for(let i=0;i<n;i++) zTone(ZA.amb, {f:zr(300,600), f2:zr(700,1200), t:i*0.07, dur:0.06, g:0.03, atk:0.003}); }); },
+  forest(){ const bp = zF("bandpass", 480, 0.7), g = zG(0.2); zChain(zNoise("pink"), bp, g, ZA.amb); zLfo(bp.frequency, 0.05, 200); zLfo(g.gain, 0.08, 0.1);
+    zChain(zNoise("white"), zF("highpass", 4000), zG(0.012), ZA.amb);
+    zEvery(1800, 7000, ()=>{ const base = zr(2400,4200), n = Math.floor(zr(2,6)), up = Math.random()<0.5;
+      for(let i=0;i<n;i++) zTone(ZA.amb, {f:base*(1 + (up?i:-i)*0.04), f2:base*zr(1.1,1.35), t:i*zr(0.09,0.16), dur:zr(0.05,0.1), g:0.03, atk:0.005}); }); },
+  cafe(){ const a = zG(0.14), b = zG(0.05); zChain(zNoise("pink"), zF("bandpass", 520, 0.9), a, ZA.amb); zChain(zNoise("pink"), zF("bandpass", 1300, 1.1), b, ZA.amb);
+    zLfo(a.gain, 0.31, 0.05); zLfo(b.gain, 0.53, 0.025); zChain(zNoise("brown"), zF("lowpass", 200), zG(0.08), ZA.amb);
+    zEvery(5000, 14000, ()=>{ const f = zr(2400,3200); zTone(ZA.amb, {f, dur:0.35, g:0.03}); zTone(ZA.amb, {f:f*1.48, dur:0.25, g:0.015}); });
+    zEvery(60000, 120000, ()=>{ zBurst(ZA.amb, {type:"highpass", f:2200, q:0.5, atk:0.3, dur:3, g:0.035}); }); },
+  focus(){ zChain(zNoise("pink"), zF("lowpass", 3000), zG(0.12), ZA.amb);
+    const mer = zk(ZA.ctx.createChannelMerger(2)); mer.connect(zG(1)).connect(ZA.amb);
+    [200, 210].forEach((f,i)=>{ const o = zk(ZA.ctx.createOscillator()); o.frequency.value = f; const g = zG(0.04); o.connect(g); g.connect(mer, 0, i); o.start(); }); },
+  fire(){ zChain(zNoise("brown"), zF("lowpass", 320), zG(0.26), ZA.amb);
+    zEvery(25, 140, ()=>{ zBurst(ZA.amb, {f:zr(1200,5000), q:zr(1,5), dur:zr(0.004,0.02), g:zr(0.03,0.12)}); });
+    zEvery(600, 2600, ()=>{ zBurst(ZA.amb, {f:zr(300,900), q:1.5, dur:zr(0.03,0.07), g:zr(0.12,0.25)}); });
+    const w = zG(0.04); zChain(zNoise("pink"), zF("bandpass", 320, 0.8), w, ZA.amb); zLfo(w.gain, 0.05, 0.03); }
+};
+/* music */
+const ZMUS = {
+  pad(){ const ch = [[48,55,59,64],[45,52,57,60,64],[41,48,53,57,64],[43,50,55,59,62]]; let i = 0;
+    const go = ()=>{ if(!ZEN.on) return; ch[i++%ch.length].forEach(m=>zPad(ZA.mus, m, 0, 9, 0.05));
+      if(Math.random()<0.6) zTone(ZA.mus, {f:mf(72 + [0,2,4,7,9][Math.floor(Math.random()*5)]), type:"sine", t:zr(1,4), dur:3, g:0.025, atk:0.02});
+      ZA.timers.push(setTimeout(go, 8000)); };
+    go(); },
+  deep(){ const ch = [[38,45,50,57],[36,43,48,55],[41,48,53,60],[33,40,45,52]]; let i = 0;
+    const go = ()=>{ if(!ZEN.on) return; ch[i++%ch.length].forEach(m=>zPad(ZA.mus, m, 0, 11, 0.055, "triangle")); ZA.timers.push(setTimeout(go, 10000)); }; go(); },
+  minimal(){ const sc = [57,60,62,64,67,69,72]; let i = 0;
+    zSeq(60, 8, (s, t)=>{ if(s===0) zPad(ZA.mus, [45,41,48,43][i++%4], t, 8, 0.05); if(Math.random() < 0.3) zTone(ZA.mus, {f:mf(sc[Math.floor(Math.random()*sc.length)]+12), type:"sine", t, dur:1.8, g:0.02, atk:0.01}); }); },
+  lofi(){ lofiCore([[53,57,60,64],[52,55,59,62],[50,53,57,60],[48,52,55,59]], 74, false); },
+  jazz(){ lofiCore([[50,53,57,60,64],[43,53,55,59,64],[48,52,55,59,62],[45,49,52,55,58]], 82, true); },
+  synth(){ const prog = [[57,60,64],[53,57,60],[48,52,55],[55,59,62]]; const bassF = zF("lowpass", 600), bus = zChain(bassF, zG(1), ZA.mus);
+    zSeq(96, 16, (s, t, bar)=>{ const ch = prog[bar%4], arp = [0,1,2,1,0,2,1,2];
+      zTone(ZA.mus, {f:mf(ch[arp[s%8]] + 12), type:"sawtooth", t, dur:0.18, g:0.03, atk:0.005, lp:1800});
+      if(s%2===0) zTone(bus, {f:mf(ch[0]-24), type:"sawtooth", t, dur:0.22, g:0.06, atk:0.005, lp:500});
+      if(s===0) ch.forEach(m=>zPad(ZA.mus, m, t, 2.6, 0.03, "sawtooth"));
+      if(s%4===0) zTone(ZA.mus, {f:110, f2:40, t, dur:0.18, g:0.18, atk:0.002}); }); },
+  piano(){ const prog = [[45,52,57,60],[41,48,53,57],[48,55,60,64],[43,50,55,59]], sc = [69,71,72,74,76,79,81];
+    zSeq(64, 16, (s, t, bar)=>{ const ch = prog[bar%4];
+      if(s===0) ch.forEach((m,i)=>zKey(ZA.mus, m, t + i*0.04, 0.05, 4));
+      if(s%4===2 && Math.random()<0.55) zKey(ZA.mus, sc[Math.floor(Math.random()*sc.length)], t, 0.045, 2.5); }); },
+  koto(){ const sc = [57,58,62,64,65,69,70,74,76]; /* a Japanese in-scale */
+    zSeq(66, 16, (s, t, bar)=>{ if(s===0 && bar%2===0) zPluck(ZA.mus, 45, t, 0.07, false);
+      if(s%2===0 && Math.random() < 0.32){ const m = sc[Math.floor(Math.random()*sc.length)]; zPluck(ZA.mus, m, t, 0.06, true); if(Math.random()<0.3) zPluck(ZA.mus, m, t + 0.12, 0.03, true); } }); },
+  folk(){ const prog = [[48,55,60,64],[45,52,57,60],[41,48,53,57],[43,50,55,59]], pat = [0,2,1,3,2,1,3,2];
+    zSeq(84, 16, (s, t, bar)=>{ const ch = prog[bar%4]; if(s%2===0) zPluck(ZA.mus, ch[pat[(s/2)%8]] + 12, t, 0.045, true); if(s===0) zPluck(ZA.mus, ch[0]-12, t, 0.07, false); }); },
+  finger(){ const prog = [[40,47,52,55,59],[45,52,57,60,64],[43,50,55,59,62],[47,54,59,62,66]], pat = [0,3,2,4,1,3,2,4];
+    zSeq(72, 16, (s, t, bar)=>{ const ch = prog[bar%4]; if(s%2===0) zPluck(ZA.mus, ch[pat[(s/2)%8]], t, 0.05, false); if(s===0) zPluck(ZA.mus, ch[0]-12, t, 0.08, false); }); }
+};
+function lofiCore(prog, bpm, walk){
+  const c = ZA.ctx, drums = zG(0.9); drums.connect(ZA.mus);
+  zSeq(bpm, 16, (s, t, bar, st)=>{
+    const ch = prog[bar%prog.length], sw = (s%2) ? st*0.18 : 0, tt = t + sw;
+    if(s===0) ch.forEach((m,i)=>zKey(ZA.mus, m, t + i*0.03, 0.045, 3.2));
+    if(s===8 && Math.random()<0.5) ch.slice(1).forEach((m,i)=>zKey(ZA.mus, m, t + i*0.03, 0.03, 1.4));
+    if(walk){ if(s%4===0){ const b = ch[0]-12 + [0,4,7,5][s/4]; zTone(ZA.mus, {f:mf(b), type:"triangle", t, dur:0.5, g:0.11, atk:0.01, lp:700}); } }
+    else if(s===0 || s===10) zTone(ZA.mus, {f:mf(ch[0]-24), type:"sine", t:tt, dur:0.8, g:0.12, atk:0.01});
+    if(s===0 || s===10 || (s===7 && Math.random()<0.4)) zTone(drums, {f:120, f2:42, t:tt, dur:0.22, g:0.32, atk:0.002});
+    if(s===4 || s===12) zBurst(drums, {f:1800, q:0.8, dur:0.16, g:0.13, at:tt});
+    if(s%2===0 || Math.random()<0.2) zBurst(drums, {type:"highpass", f:7000, q:0.5, dur:0.035, g:(s%4===0?0.05:0.03), at:tt});
+    if(Math.random()<0.12) zKey(ZA.mus, ch[ch.length-1] + 12 + [0,2,3,5][Math.floor(Math.random()*4)], tt, 0.025, 1.2);
+    if(Math.random()<0.5) zBurst(ZA.mus, {f:zr(3000,7000), q:3, dur:0.004, g:zr(0.005,0.02), at:t + Math.random()*st});
+  });
 }
 
 
