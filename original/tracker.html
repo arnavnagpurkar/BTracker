@@ -883,6 +883,10 @@ body.zen-on{overflow:hidden} body.zen-on .toast{z-index:9600}
   .zen-bar{bottom:20px;gap:6px;width:calc(100vw - 24px);justify-content:center;flex-wrap:wrap} .zen-btn{padding:10px 13px;font-size:13px} .zen-sep{display:none}
   .zen-acts{bottom:122px} .zen-panel{bottom:126px} .zen-center{top:40%}
 }
+.an-qline{display:flex;flex-wrap:wrap;gap:4px 12px;margin-top:8px;padding-top:8px;border-top:1px solid var(--rule-soft);font-size:12px;color:var(--text-3)}
+.an-qline b{color:var(--text);font-family:var(--mono)}
+.rk-sub{display:grid;grid-template-columns:1fr 110px 110px;gap:8px 10px;align-items:center;margin-top:6px}
+.rk-sub .numin{width:100%}
 .ws-group{margin-bottom:16px}
 .ws-list{padding:4px}
 .wsrow{display:grid;grid-template-columns:auto minmax(0,1fr) 120px auto auto;align-items:center;gap:12px;padding:9px 10px 9px 14px;border-radius:9px;cursor:pointer;position:relative;transition:background .15s}
@@ -5829,19 +5833,32 @@ function newMarks(){
     {id:"p",n:"Physics"},{id:"c",n:"Chemistry"},{id:"m",n:"Maths"},
     {id:"pct",n:"Percentage",calc:"pct"},{id:"agg",n:"Aggregate"},
     {id:"rb",n:"Rank in batch"},{id:"rt",n:"Total rank"}];
-  return {v:2, tables:[{id:"btest",n:"BTest",cols:cols(),rows:[]},
-                  {id:"cet",n:"MHTCET",cols:cols(),rows:[]},
-                  {id:"alt",n:"ALT",cols:cols(),rows:[]}], cur:"btest"};
+  const withDetail = ()=>addDetailCols(cols());
+  return {v:3, tables:[{id:"btest",n:"BTest",cols:withDetail(),rows:[]},
+                  {id:"cet",n:"MHTCET",cols:withDetail(),rows:[]},
+                  {id:"alt",n:"ALT",cols:withDetail(),rows:[]}], cur:"btest"};
 }
 /* tables saved before Test and Date existed get them once; if they are removed
    afterwards the version flag stops them coming back */
+/* +ve and −ve marks, and per subject: attempted, correct, partly correct, ranks and aggregate */
+const SUBJ_DETAIL = [["pos","+ve"],["neg","−ve"],["att","attempted"],["cor","correct"],["part","partly correct"],["rk","rank"],["rb","batch rank"],["agg","aggregate"]];
+const SUBJ_FULL = {p:"Physics", c:"Chemistry", m:"Maths"};
+function addDetailCols(cols){
+  const has = id=>cols.some(c=>c.id===id);
+  if(!has("pos")){ const at = cols.findIndex(c=>c.id==="sc"); cols.splice(at<0?cols.length:at+1, 0, {id:"pos",n:"+ve marks"}, {id:"neg",n:"−ve marks"}); }
+  ["p","c","m"].forEach(k=>SUBJ_DETAIL.forEach(([d,n])=>{ if(!has(k+"_"+d)) cols.push({id:k+"_"+d, n:SUBJ_FULL[k]+" "+n}); }));
+  return cols;
+}
 function migrateMarks(){
-  if(!S.marks || S.marks.v === 2) return;
+  if(!S.marks) return;
+  if(S.marks.v === 2){ (S.marks.tables||[]).forEach(t=>addDetailCols(t.cols)); S.marks.v = 3; return; }
+  if(S.marks.v >= 3) return;
   (S.marks.tables||[]).forEach(t=>{
     if(!t.cols.some(c=>c.id==="date")) t.cols.unshift({id:"date",n:"Date"});
     if(!t.cols.some(c=>c.id==="name")) t.cols.unshift({id:"name",n:"Test"});
+    addDetailCols(t.cols);
   });
-  S.marks.v = 2;
+  S.marks.v = 3;
 }
 const POM_DEFAULT = {focus:25, brk:5, chime:"both", endless:false, autoBrk:false, autoFocus:false};
 /* targets are held per period type — a daily question target is not a monthly one */
@@ -9581,12 +9598,29 @@ function viewMarks(){
       t.rows[ri].v[inp.dataset.col] = inp.value;
       markDirty();
       const tr = inp.closest("tr");
+      deriveMarkRow(t.rows[ri], inp.dataset.col, tr);
       /* the row starts with the drag handle, so a column's cell is one along */
       t.cols.forEach((c,ci)=>{ if(c.calc) tr.children[ci+1].textContent = calcCell(t, t.rows[ri], c); });
       if(graphCol){ clearTimeout(inp._g); inp._g = setTimeout(()=>{ const a=document.activeElement, id=a&&a.dataset?a.dataset.col:null;
         viewMarks(); if(id){ const el=document.querySelector(`tr[data-row="${ri}"] input[data-col="${id}"]`); if(el){ el.focus(); el.setSelectionRange(el.value.length,el.value.length); } } }, 600); }
     };
   });
+}
+
+/* in the Marks tab, filling a subject's +ve and −ve marks works out its net, the
+   overall +ve and −ve, and the scored total, the same way Analysis does */
+function deriveMarkRow(row, col, tr){
+  const m = /^([pcm])_(pos|neg)$/.exec(col); if(!m) return;
+  const v = row.v, num = x=>{ const n = parseFloat(x); return isFinite(n) ? n : null; }, set = (k,x)=>{ v[k] = String(x);
+    const el = tr && tr.querySelector(`input[data-col="${k}"]`); if(el && el !== document.activeElement) el.value = v[k]; };
+  const k = m[1], p = num(v[k+"_pos"]), q = num(v[k+"_neg"]);
+  if(p===null && q===null) return;
+  set(k, (p||0) - Math.abs(q||0));
+  let P = 0, N = 0, any = false, scAll = 0;
+  ["p","c","m"].forEach(x=>{ const a = num(v[x+"_pos"]), b = num(v[x+"_neg"]);
+    if(a!==null || b!==null){ any = true; P += a||0; N += Math.abs(b||0); }
+    scAll += num(v[x]) || 0; });
+  if(any){ set("pos", P); set("neg", N); set("sc", scAll); }
 }
 
 /* ============================================================
@@ -10444,7 +10478,10 @@ function avgQuestionTime(from, to, subs, dlId){
    step by name so editing either updates the other.
    ============================================================ */
 const AN_SUBS = ["P","C","M"];
-function newSubMark(tot){ return {tot: tot===undefined?100:tot, sc:0, wr:0, time:0}; }
+function newSubMark(tot){ return {tot: tot===undefined?100:tot, sc:0, wr:0, time:0, pos:0, neg:0, att:"", cor:"", part:""}; }
+/* tests made from now on record +ve and −ve marks; older ones keep "marks lost to wrong answers" */
+const anPN = t => t && t.v === 2;
+const subRank = (t,s) => (t.sranks && t.sranks[s]) || {rb:"", agg:""};
 /* a declaration, not a const: the initial state is built before this file's
    consts have been evaluated */
 function DEFAULT_CFG(){ return {marks:{P:100,C:100,M:100}, qs:{P:25,C:25,M:25}}; }
@@ -10458,7 +10495,8 @@ function newTest(name, cfg){
   const c = cfg || DEFAULT_CFG();
   return {id:"x"+Math.random().toString(36).slice(2,8), name,
           subs:{P:newSubMark(c.marks.P), C:newSubMark(c.marks.C), M:newSubMark(c.marks.M)},
-          ranks:{all:"", batch:"", P:"", C:"", M:""}, agg:"", qs:[], notes:""};
+          ranks:{all:"", batch:"", P:"", C:"", M:""}, agg:"", qs:[], notes:"", v:2,
+          sranks:{P:{rb:"",agg:""}, C:{rb:"",agg:""}, M:{rb:"",agg:""}}};
 }
 /* the series decides how big every paper in it is */
 function applySeries(f){
@@ -10518,16 +10556,40 @@ function pushToMarks(folder, test){
      value in Marks and the next read syncs it straight back */
   v.rb = String(test.ranks.batch || "");
   v.rt = String(test.ranks.all || "");
+  AN_SUBS.forEach(s=>{ const k = MARK_COL[s], sr = subRank(test, s);
+    v[k+"_rk"] = String(test.ranks[s] || ""); v[k+"_rb"] = String(sr.rb || ""); v[k+"_agg"] = String(sr.agg || ""); });
+  if(anPN(test)){
+    let P = 0, N = 0;
+    AN_SUBS.forEach(s=>{ const m = test.subs[s], k = MARK_COL[s]; P += +m.pos||0; N += +m.neg||0;
+      v[k+"_pos"] = String(+m.pos||0); v[k+"_neg"] = String(+m.neg||0);
+      ["att","cor","part"].forEach(d=>{ v[k+"_"+d] = m[d]===""||m[d]==null ? "" : String(m[d]); }); });
+    v.pos = String(P); v.neg = String(N);
+  }
 }
 /* and reads back whatever was typed on the Marks side */
 function pullFromMarks(folder, test){
   const hit = markRowFor(folder, test, false); if(!hit) return false;
   const v = hit.row.v;
   let changed = false;
+  const num = x => { const n = parseFloat(x); return isFinite(n) ? n : null; };
   AN_SUBS.forEach(s=>{
-    const n = parseFloat(v[MARK_COL[s]]);
-    if(isFinite(n) && (+test.subs[s].sc||0) !== n){ test.subs[s].sc = n; changed = true; }
+    const m = test.subs[s], k = MARK_COL[s];
+    if(anPN(test)){
+      const p = num(v[k+"_pos"]), q = num(v[k+"_neg"]);
+      if(p!==null && (+m.pos||0)!==p){ m.pos = p; changed = true; }
+      if(q!==null && (+m.neg||0)!==Math.abs(q)){ m.neg = Math.abs(q); changed = true; }
+      ["att","cor","part"].forEach(d=>{ const x = v[k+"_"+d]; if(x!==undefined && String(m[d]??"")!==String(x)){ m[d] = x===""?"":(num(x)??""); changed = true; } });
+      const net = (+m.pos||0) - (+m.neg||0);
+      if(p!==null || q!==null){ if(m.sc!==net || m.wr!==(+m.neg||0)){ m.sc = net; m.wr = +m.neg||0; changed = true; } return; }
+    }
+    const n = num(v[k]);
+    if(n!==null && (+m.sc||0) !== n){ m.sc = n; changed = true; }
   });
+  AN_SUBS.forEach(s=>{ const k = MARK_COL[s];
+    if(v[k+"_rk"]!==undefined && String(test.ranks[s]||"")!==String(v[k+"_rk"])){ test.ranks[s] = v[k+"_rk"]; changed = true; }
+    ["rb","agg"].forEach(d=>{ const x = v[k+"_"+d]; if(x===undefined) return;
+      test.sranks = test.sranks || {}; const sr = test.sranks[s] = test.sranks[s] || {rb:"",agg:""};
+      if(String(sr[d]||"")!==String(x)){ sr[d] = x; changed = true; } }); });
   const rb = v.rb, rt = v.rt;
   if(rb && String(test.ranks.batch)!==String(rb)){ test.ranks.batch = rb; changed = true; }
   if(rt && String(test.ranks.all)!==String(rt)){ test.ranks.all = rt; changed = true; }
@@ -10616,10 +10678,14 @@ function editSeries(f){
     markDirty(); closeModal(); viewAnFolder(f); toastUndo("Settings applied to " + f.tests.length + " tests");
   };
 }
-function anDonut(sub, m, qs){
+function anDonut(sub, m, qs, pn){
   const size = 168, tot = Math.max(1, +m.tot||0);
   const net = +m.sc||0;
-  const parts = [
+  const parts = pn ? [
+    {v:+m.pos||0, c:"var(--ok)", n:"+ve marks"},
+    {v:+m.neg||0, c:"var(--no)", n:"−ve marks"},
+    {v:Math.max(0, (+m.tot||0) - (+m.pos||0) - (+m.neg||0)), c:"var(--ink-3)", n:"Not scored"}
+  ] : [
     {v:net, ring:Math.max(0,net), c:"var(--ok)",   n:"Scored"},
     {v:+m.wr||0, c:"var(--no)",   n:"Wrong"},
     {v:anLeft(m), c:"var(--ink-3)", n:"Left"}
@@ -10646,7 +10712,8 @@ function anDonut(sub, m, qs){
       <circle cx="${size/2}" cy="${size/2}" r="${size*0.3}" fill="var(--ink-2)"/>
       <text x="${size/2}" y="${size/2+3}" text-anchor="middle" fill="${got<0?"var(--no)":"var(--text)"}" font-size="20" font-family="ui-monospace,monospace">${got}</text>
       <text x="${size/2}" y="${size/2+20}" text-anchor="middle" fill="var(--text-3)" font-size="11" font-family="ui-monospace,monospace">of ${+m.tot||0}</text></svg>
-    <div class="lg" style="text-align:left">${parts.map(p=>`<div><i style="background:${p.c}"></i>${p.n}<b${p.v<0?' style="color:var(--no)"':""}>${p.v}</b></div>`).join("")}</div>
+    <div class="lg" style="text-align:left">${parts.map(p=>`<div><i style="background:${p.c}"></i>${p.n}<b${p.v<0?' style="color:var(--no)"':""}>${p.v}</b></div>`).join("")}
+      ${pn ? `<div class="an-qline">${[["att","Attempted"],["cor","Correct"],["part","Partly correct"]].map(([k,l])=>`<span>${l} <b>${m[k]===""||m[k]==null?"—":esc(String(m[k]))}</b></span>`).join("")}</div>` : ""}</div>
     <div class="hint" style="text-align:center">Click to edit${qs?` · ${qs} questions`:""}${m.time?` · ${m.time} min`:""}</div></button>`;
 }
 
@@ -10659,14 +10726,21 @@ function viewAnTest(f, t){
       <h1>${esc(t.name)}${penBtn2("t:"+f.id+":"+t.id, t.name)}</h1>
       <div class="stats"><span><span class="k">scored</span> <b>${sc}</b>/${tot}</span>
         <span><span class="k">percent</span> <b>${tot?Math.round(sc/tot*1000)/10:0}%</b></span>
+        ${anPN(t) ? (()=>{ const P = AN_SUBS.reduce((a,s)=>a+(+t.subs[s].pos||0),0), N = AN_SUBS.reduce((a,s)=>a+(+t.subs[s].neg||0),0),
+            q = k=>{ const xs = AN_SUBS.map(s=>t.subs[s][k]).filter(x=>x!==""&&x!=null); return xs.length ? xs.reduce((a,x)=>a+(+x||0),0) : null; };
+            return `<span><span class="k">+ve</span> <b style="color:var(--ok)">${P}</b></span><span><span class="k">−ve</span> <b style="color:var(--no)">${N}</b></span>`
+              + [["att","attempted"],["cor","correct"],["part","partly correct"]].map(([k,l])=>q(k)===null?"":`<span><span class="k">${l}</span> <b>${q(k)}</b></span>`).join(""); })() : ""}
         ${anTime(t)?`<span><span class="k">time</span> <b>${anTime(t)}</b> min</span>`:""}</div></div>
-    <div class="grid g3">${AN_SUBS.map(s=>anDonut(s, t.subs[s], folderCfg(f).qs[s])).join("")}</div>
+    <div class="grid g3">${AN_SUBS.map(s=>anDonut(s, t.subs[s], folderCfg(f).qs[s], anPN(t))).join("")}</div>
 
     <h3 class="sec">Where you came</h3>
     <div class="kpis">
       ${[["all","Rank overall"],["batch","Rank in batch"],["P","Rank in Physics"],["C","Rank in Chemistry"],["M","Rank in Maths"]]
         .map(([k,l])=>`<div class="kpi"><div class="v">${esc(String(t.ranks[k]||"—"))}</div><div class="l">${l}</div></div>`).join("")}
       <div class="kpi"><div class="v">${t.agg!==""&&t.agg!=null?esc(String(t.agg)):"—"}</div><div class="l">Aggregate</div></div>
+      ${AN_SUBS.map(s=>{ const sr = subRank(t,s), nm = subjOf(s)?subjOf(s).name:s;
+        return (sr.rb?`<div class="kpi"><div class="v">${esc(String(sr.rb))}</div><div class="l">${esc(nm)} rank in batch</div></div>`:"")
+             + (sr.agg?`<div class="kpi"><div class="v">${esc(String(sr.agg))}</div><div class="l">${esc(nm)} aggregate</div></div>`:""); }).join("")}
       ${(()=>{ const a = parseFloat(t.agg);
         if(!isFinite(a) || a === 0) return "";
         return `<div class="kpi"><div class="v">${Math.round(sc/a*100)/100}</div><div class="l">Average · ${sc} ÷ ${a}</div></div>`;
@@ -10718,6 +10792,7 @@ function viewAnTest(f, t){
 }
 
 function editSubMark(f, t, s){
+  if(anPN(t)) return editSubMarkPN(f, t, s);
   const m = t.subs[s];
   onEsc = ()=>viewAnTest(f,t);
   const row = (id,label,val,hint)=>`<div class="setrow"><span class="lbl">${label}${hint?`<br><span class="hint" style="margin:0">${hint}</span>`:""}</span>
@@ -10746,6 +10821,42 @@ function editSubMark(f, t, s){
     markDirty(); closeModal(); viewAnTest(f,t); toastUndo("Marks saved");
   };
 }
+function editSubMarkPN(f, t, s){
+  const m = t.subs[s], qs = +folderCfg(f).qs[s]||0;
+  onEsc = ()=>viewAnTest(f,t);
+  const row = (id,label,val,hint)=>`<div class="setrow"><span class="lbl">${label}${hint?`<br><span class="hint" style="margin:0">${hint}</span>`:""}</span>
+    <input class="numin" type="number" id="${id}" value="${val}" min="0"></div>`;
+  const opt = v => v===""||v==null ? "" : String(v);
+  openModal(`<h3>${esc(subjOf(s)?subjOf(s).name:s)} — ${esc(t.name)}</h3>
+    ${row("mTot","Marks in the paper","" + (+m.tot||0))}
+    ${row("mPos","+ve marks","" + (+m.pos||0),"everything you got for right and partly right answers")}
+    ${row("mNeg","−ve marks","" + (+m.neg||0),"type it as a positive number, e.g. 8 for −8")}
+    <div class="setrow"><span class="lbl">Total</span><b id="mNet" style="font-family:var(--mono);font-size:16px"></b></div>
+    <div class="blabel" style="margin-top:14px">Questions${qs?` · ${qs} in this paper`:""} <span class="hint" style="margin:0">(optional)</span></div>
+    ${row("mAtt","Attempted",opt(m.att))}
+    ${row("mCor","Correct",opt(m.cor))}
+    ${row("mPart","Partly correct",opt(m.part))}
+    ${row("mTime","Minutes spent","" + (+m.time||0))}
+    <div class="msg bad" id="mMsg"></div>
+    <div class="acts"><button class="btn" id="mNo2">Cancel</button>
+    <button class="btn primary" id="mYes2">Save</button></div>`);
+  const $ = id=>modal.querySelector("#"+id);
+  const val = id=>{ const x = $(id).value.trim(); return x==="" ? null : Math.abs(parseFloat(x)||0); };
+  const net = ()=>{ const n = (val("mPos")||0) - (val("mNeg")||0); $("mNet").textContent = n; $("mNet").style.color = n<0?"var(--no)":"var(--text)"; };
+  $("mPos").oninput = net; $("mNeg").oninput = net; net();
+  $("mNo2").onclick = ()=>{ closeModal(); viewAnTest(f,t); };
+  $("mYes2").onclick = ()=>{
+    const msg = $("mMsg"), tot = val("mTot")||0, pos = val("mPos")||0, neg = val("mNeg")||0;
+    const att = val("mAtt"), cor = val("mCor"), part = val("mPart");
+    if(pos > tot){ msg.textContent = "+ve marks are more than the paper is worth."; return; }
+    if(att!==null && qs && att > qs){ msg.textContent = "That's more attempted than there are questions."; return; }
+    if(att!==null && (cor||0) + (part||0) > att){ msg.textContent = "Correct and partly correct add up to more than you attempted."; return; }
+    snapshot("edit marks");
+    Object.assign(m, {tot, pos, neg, sc: pos - neg, wr: neg, att: att===null?"":att, cor: cor===null?"":cor, part: part===null?"":part, time: val("mTime")||0});
+    pushToMarks(f, t);
+    markDirty(); closeModal(); viewAnTest(f,t); toastUndo("Marks saved");
+  };
+}
 function editRanks(f, t){
   onEsc = ()=>viewAnTest(f,t);
   const fields = [["all","Rank overall"],["batch","Rank in batch"],
@@ -10755,6 +10866,10 @@ function editRanks(f, t){
       <input class="numin" type="text" id="rk_${k}" value="${esc(String(t.ranks[k]||""))}"></div>`).join("")}
     <div class="setrow"><span class="lbl">Aggregate<br><span class="hint" style="margin:0">Leave blank and no average is shown. Average is your marks divided by this.</span></span>
       <input class="numin" type="text" id="rk_agg" value="${esc(String(t.agg||""))}"></div>
+    <div class="blabel" style="margin-top:14px">Each subject <span class="hint" style="margin:0">(optional)</span></div>
+    <div class="rk-sub"><span></span><span class="blabel" style="margin:0">Batch rank</span><span class="blabel" style="margin:0">Aggregate</span>
+      ${AN_SUBS.map(s=>{ const sr = subRank(t,s); return `<span class="lbl">${esc(subjOf(s)?subjOf(s).name:s)}</span>
+        <input class="numin" type="text" id="srb_${s}" value="${esc(String(sr.rb||""))}"><input class="numin" type="text" id="sag_${s}" value="${esc(String(sr.agg||""))}">`; }).join("")}</div>
     <div class="acts"><button class="btn" id="rNo2">Cancel</button>
     <button class="btn primary" id="rYes2">Save</button></div>`);
   modal.querySelector("#rNo2").onclick = ()=>{ closeModal(); viewAnTest(f,t); };
@@ -10762,6 +10877,8 @@ function editRanks(f, t){
     snapshot("edit ranks");
     fields.forEach(([k])=>{ t.ranks[k] = modal.querySelector("#rk_"+k).value.trim(); });
     t.agg = modal.querySelector("#rk_agg").value.trim();
+    t.sranks = t.sranks || {};
+    AN_SUBS.forEach(s=>{ t.sranks[s] = {rb: modal.querySelector("#srb_"+s).value.trim(), agg: modal.querySelector("#sag_"+s).value.trim()}; });
     pushToMarks(f, t);
     markDirty(); closeModal(); viewAnTest(f,t); toastUndo("Ranks saved");
   };
