@@ -162,7 +162,7 @@ select,.tin{background:var(--ink-3);border:1px solid var(--rule);border-radius:7
 .sheet{border:1px solid var(--rule-soft);border-radius:var(--r);background:var(--ink-2);user-select:none}
 .sheet > :first-child{border-radius:var(--r) var(--r) 0 0}
 .sheet > :last-child{border-radius:0 0 var(--r) var(--r)}
-.row{display:grid;grid-template-columns:62px 58px 122px minmax(100px,1fr) 132px 88px 40px;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--rule-soft);position:relative}
+.row{display:grid;grid-template-columns:62px 58px 122px minmax(100px,1fr) 132px 88px 76px;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--rule-soft);position:relative}
 .row:first-child{border-top:none}
 .head{border-top:none;background:var(--ink-3);font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);position:sticky;top:var(--topbar-h,86px);z-index:5;padding-top:9px;padding-bottom:9px}
 .row.done{background:rgba(62,207,142,.035)}
@@ -268,6 +268,15 @@ select,.tin{background:var(--ink-3);border:1px solid var(--rule);border-radius:7
 .day.today{border-color:var(--accent)}
 .day.on{border-color:var(--rule)}
 .day.pick{outline:2px solid var(--accent);outline-offset:1px}
+.scat-wrap{position:relative}
+.scat-hid{position:absolute;top:6px;right:6px;z-index:2}
+.scat-menu{position:absolute;right:0;top:calc(100% + 6px);width:280px;max-height:300px;overflow:auto;background:var(--ink-2);border:1px solid var(--rule);border-radius:10px;padding:10px;box-shadow:0 12px 30px rgba(0,0,0,.45)}
+.scat-menu[hidden]{display:none}
+.scat-mi{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:13px}.scat-mi span{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.scat-mi i{width:8px;height:8px;border-radius:99px;flex:none}
+.scat-pop{position:fixed;z-index:120;display:flex;flex-direction:column;gap:6px;min-width:190px;max-width:260px;padding:10px;background:var(--ink-2);border:1px solid var(--rule);border-radius:10px;box-shadow:0 12px 30px rgba(0,0,0,.5);animation:riseIn .15s ease both}
+.scat-pop b{font-size:13px;font-weight:600;margin-bottom:2px}
+.scat-pop .tbtn{text-align:left}
 .day .tot{font-family:var(--mono);font-size:9.5px;color:var(--text-2);margin-top:auto}
 .chartrow{display:flex;gap:22px;align-items:center;flex-wrap:wrap;background:var(--ink-2);border:1px solid var(--rule-soft);border-radius:var(--r);padding:18px;margin-bottom:16px}
 .lg{display:flex;flex-direction:column;gap:7px;min-width:200px;flex:1}
@@ -350,8 +359,9 @@ table.mk th.dropcol{box-shadow:inset 2px 0 0 var(--accent)}
 .chip{cursor:pointer}
 
 /* vertical bars inside a calendar day */
-.day .bars{display:flex;align-items:flex-end;gap:3px;flex:1;min-height:20px;width:100%;margin:4px 0 2px}
-.day .bars i{display:block;border-radius:2px 2px 0 0;min-height:2px}
+.day .bars{position:relative;flex:1;min-height:20px;width:100%;margin:4px 0 2px}
+.day .stk{position:absolute;left:18%;right:18%;bottom:0;display:flex;flex-direction:column-reverse;border-radius:3px 3px 1px 1px;overflow:hidden;transition:height .4s var(--ease)}
+.day .stk i{display:block;min-height:2px}
 
 /* deadlines */
 .dl{background:var(--ink-2);border:1px solid var(--rule-soft);border-radius:var(--r);padding:16px;margin-bottom:12px}
@@ -371,6 +381,16 @@ table.mk th.dropcol{box-shadow:inset 2px 0 0 var(--accent)}
 .sw.on{background:rgba(62,207,142,.25);border-color:var(--ok)}
 .sw.on i{left:21px;background:var(--ok)}
 
+/* resolved */
+.c-bm{display:flex;align-items:center;gap:2px}.c-bm .bm{margin-left:0}
+.rsv{font-size:11.5px;font-weight:700;line-height:1;min-width:26px;padding:3px 5px;border-radius:6px;margin-left:4px;color:#3a4757;border:1px solid transparent}
+.rsv:not([disabled]):hover{color:#b5d96a;border-color:rgba(181,217,106,.4)}
+.rsv[disabled]{opacity:.35;cursor:default}
+.rsv.lv1{color:#c9d96a;border-color:rgba(201,217,106,.45);background:rgba(201,217,106,.08)}
+.rsv.lv2{color:#a8d86a;border-color:rgba(168,216,106,.6);background:rgba(168,216,106,.16)}
+.row.rs1{background:linear-gradient(90deg,rgba(201,217,106,.06),transparent 70%)}
+.row.rs2{background:rgba(186,216,96,.12)}
+.row.rs2 .bub .w.on{background:rgba(186,216,96,.25);border-color:#b5d96a;color:#d8f0a0}
 /* bookmark */
 .bm{font-size:14px;line-height:1;color:#3a4757;padding:2px 4px;border-radius:5px;margin-left:6px}
 .bm:hover{color:var(--hw)}
@@ -6039,14 +6059,19 @@ function arrFor(sc,no,code,len){
 }
 
 const blank = () => ({n:0,done:0,correct:0,wrong:0,cant:0,flag:0});
-function addTo(a,b){ ["n","done","correct","wrong","cant","flag"].forEach(k=>a[k]+=b[k]); return a; }
+/* a mistake you later got right counts for less: half after one "resolved", a quarter after two */
+const rsLevel = qk => { const r = S.r[qk]; return r && r.rs ? r.rs : 0; };
+const rsW = rec => rec && rec.rs===2 ? 0.25 : rec && rec.rs===1 ? 0.5 : 1;
+const fmtN = x => Math.round(x*100)/100;
+function addTo(a,b){ ["n","done","correct","wrong","cant","flag"].forEach(k=>a[k]+=b[k]); a.wrong = fmtN(a.wrong); return a; }
 function exStats(sc,ch,code){
   const n = qCount(sc,ch,code), st = blank(); st.n = n;
   const a = S.d[key(sc,ch.no,code)]; if(!a) return st;
   for(let i=0;i<n;i++){ const v=a[i]||0;
     if(isDone(v)) st.done++;
-    const r=result(v); if(r===1) st.correct++; else if(r===2) st.wrong++; else if(r===3) st.cant++;
+    const r=result(v); if(r===1) st.correct++; else if(r===2) st.wrong += rsW(S.r[key(sc,ch.no,code)+"."+i]); else if(r===3) st.cant++;
     if(isFlag(v)) st.flag++; }
+  st.wrong = fmtN(st.wrong);
   return st;
 }
 function chapStats(sc,ch){ const t=blank(); exList(sc,ch).forEach(e=>addTo(t,exStats(sc,ch,e.code))); return t; }
@@ -6800,7 +6825,7 @@ function drawSheet(){
   const sheet = document.getElementById("sheet"); if(!sheet||!ctx) return;
   ctx.hw = hwIndexSet(ctx.sc, ctx.ch.no, ctx.code);
   order = computeOrder();
-  sheet.innerHTML = `<div class="row head"><span>Q.no</span><span>Solved</span><span>Result</span><span>Your note</span><span>Review</span><span>Rating</span><span>Saved</span></div>`
+  sheet.innerHTML = `<div class="row head"><span>Q.no</span><span>Solved</span><span>Result</span><span>Your note</span><span>Review</span><span>Rating</span><span>Saved · fixed</span></div>`
     + (order.length ? order.map(i=>rowHTML(i)).join("")
        : `<div class="empty">No questions match this filter. Change <strong>Show</strong> or <strong>Stars</strong> above.</div>`);
 }
@@ -6808,7 +6833,8 @@ function rowHTML(i){
   const v = ctx.arr[i]||0, r = result(v), st = stars(v);
   const qk = key(ctx.sc,ctx.ch.no,ctx.code)+"."+i;
   const note = S.n[qk]||"", rec = S.r[qk];
-  const cls = [isDone(v)?"done":"", r===3?"cant":"", sel.has(i)?"sel":"", ctx.hw.has(i)?"hw":""].filter(Boolean).join(" ");
+  const rl = r===2 ? rsLevel(qk) : 0;
+  const cls = [isDone(v)?"done":"", r===3?"cant":"", sel.has(i)?"sel":"", ctx.hw.has(i)?"hw":"", rl===1?"rs1":"", rl===2?"rs2":""].filter(Boolean).join(" ");
   const why = r===2 ? `<button class="why" data-act="why" title="${rec&&rec.t.length?esc(rec.t.map(tagName).join(", ")):"Say what went wrong"}">${rec&&rec.t.length?rec.t.length+" TAG"+(rec.t.length>1?"S":""):"WHY?"}</button>` : "";
   return `<div class="row ${cls}" data-i="${i}">
     <span class="qn" title="Drag down to select several questions">${String(i+1).padStart(3,"0")}${ctx.hw.has(i)?'<i>HW</i>':""}</span>
@@ -6823,7 +6849,9 @@ function rowHTML(i){
       <button class="flag ${isFlag(v)?"on":""}" data-act="flag" aria-pressed="${!!isFlag(v)}">RETRY</button>
       <button class="cantb ${r===3?"on":""}" data-act="res" data-v="3" aria-pressed="${r===3}" title="Could not solve">STUCK</button></span>
     <span class="c-stars stars">${[1,2,3].map(k=>`<button class="${st>=k?"on":""}" data-act="star" data-v="${k}" aria-label="${k} star">★</button>`).join("")}</span>
-    <span class="c-bm"><button class="bm ${(S.bm[qk]||[]).length?"on":""}" data-act="bm" title="Save to a collection" aria-label="Save question ${i+1} to a collection">${bmIcon((S.bm[qk]||[]).length)}</button></span>
+    <span class="c-bm"><button class="bm ${(S.bm[qk]||[]).length?"on":""}" data-act="bm" title="Save to a collection" aria-label="Save question ${i+1} to a collection">${bmIcon((S.bm[qk]||[]).length)}</button><button class="rsv lv${rl}" data-act="rsv" ${r===2?"":"disabled"}
+      title="${r!==2 ? "For a question you got wrong — press it when you redo it correctly" : rl===0 ? "Got it right when you redid it? Halves this mistake" : rl===1 ? "Resolved once (counts half). Press again to clear it to a quarter" : "Resolved — counts a quarter. Press again to undo"}"
+      aria-label="Resolved, question ${i+1}">${rl===2?"✓✓":rl===1?"✓":"↺"}</button></span>
   </div>`;
 }
 function redrawRow(i){ const el = document.querySelector(`.row[data-i="${i}"]`); if(el) el.outerHTML = rowHTML(i); }
@@ -6841,6 +6869,15 @@ document.addEventListener("click", e=>{
   let v = ctx.arr[i]||0;
   const act = btn.dataset.act, was = isDone(v);
   if(act==="why"){ openReasons(qk); return; }
+  if(act==="rsv"){
+    if(result(v)!==2) return;
+    snapshot("resolve a mistake");
+    const rec = S.r[qk] = S.r[qk] || {d:todayKey(), t:[]}, nx = ((rec.rs||0) + 1) % 3;
+    if(nx) rec.rs = nx; else delete rec.rs;
+    redrawRow(i); markDirty(); refreshStats();
+    toast(nx===1 ? "Resolved — this mistake now counts half" : nx===2 ? "Resolved twice — counts a quarter" : "No longer marked resolved");
+    return;
+  }
   if(act==="bm"){ openBookmark(qk, ()=>drawSheet()); return; }
   if(act==="bm"){ openBookmark(qk, ()=>{ drawSheet(); refreshStats(); }); return; }
   if(act==="done"){ const now=!isDone(v); v=setDone(v,now); if(!now){ v=setResult(v,0); delete S.r[qk]; } }
@@ -8065,10 +8102,12 @@ function computeMetrics(from, to, subs, dlId){
     const rec = S.r[qk];
     if(!rec.d || !inRange(rec.d,from,to)) return;
     if(subs && !subs.has(qk[0])) return;
-    wrongCount++;
-    if(!rec.t.length) wrongTags["__none"]=(wrongTags["__none"]||0)+1;
-    rec.t.forEach(t=>wrongTags[t]=(wrongTags[t]||0)+1);
+    const w = rsW(rec);
+    wrongCount += w;
+    if(!rec.t.length) wrongTags["__none"]=(wrongTags["__none"]||0)+w;
+    rec.t.forEach(t=>wrongTags[t]=(wrongTags[t]||0)+w);
   });
+  wrongCount = fmtN(wrongCount); Object.keys(wrongTags).forEach(k=>wrongTags[k] = fmtN(wrongTags[k]));
   const totalMin = Object.values(mins).reduce((a,b)=>a+b,0);
   const totalQ = Object.values(solved).reduce((a,b)=>a+b,0);
   const today = new Date(); today.setHours(0,0,0,0);
@@ -8647,7 +8686,10 @@ function chapterRows(){
 function scatterHTML(){
   const shown = statView.scatter.subs;
   const min = statView.scatter.min;
-  const rows = chapterRows().filter(r=>(!shown || shown.includes(r.sc)) && r.st.done >= min);
+  const hid = new Set((S.look.scatHide)||[]);
+  const all = chapterRows().filter(r=>(!shown || shown.includes(r.sc)) && r.st.done >= min);
+  const rows = all.filter(r=>!hid.has(r.sc+":"+r.no));
+  const hiddenHere = (S.look.scatHide||[]).map(k=>{ const [sc,no] = k.split(":"), ch = chapOf(sc,no); return ch && subjOf(sc) ? {k, sc, ch} : null; }).filter(Boolean);
   const W=760, H=460, padL=54, padR=20, padT=18, padB=48;
   const x = v => padL + v/100*(W-padL-padR);
   const y = v => padT + (1-v/100)*(H-padT-padB);
@@ -8661,7 +8703,7 @@ function scatterHTML(){
     return `<circle cx="${x(r.done).toFixed(1)}" cy="${y(r.acc).toFixed(1)}" r="${rad.toFixed(1)}"
       fill="${r.c}" fill-opacity="0.55" stroke="${r.c}" stroke-width="1.5"
       data-scatnode="chapter:${esc(r.sc)}:${esc(String(r.no))}" style="cursor:pointer">
-      <title>${esc(chTitle(r.ch))} · ${esc(r.mod)}\n${r.done}% done (${r.st.done}/${r.st.n}), ${r.acc}% correct — click for more</title></circle>`;
+      <title>${esc(chTitle(r.ch))} · ${esc(r.mod)}\n${r.done}% done (${r.st.done}/${r.st.n}), ${r.acc}% correct — click to open or hide</title></circle>`;
   }).join("");
   return `<div class="panel">
     <div class="hwrow" style="margin-bottom:10px;flex-wrap:wrap">
@@ -8671,6 +8713,10 @@ function scatterHTML(){
       <input class="numin" type="number" id="scatMin" min="1" max="500" value="${min}">
       <span class="blabel" style="margin:0">questions done</span>
     </div>
+    <div class="scat-wrap">${hiddenHere.length ? `<div class="scat-hid"><button class="tbtn" id="scatHidBtn">${hiddenHere.length} hidden ▾</button>
+      <div class="scat-menu" id="scatMenu" hidden><div class="blabel" style="margin:0 0 6px">Hidden from the graph</div>
+        ${hiddenHere.map(h=>`<div class="scat-mi"><i style="background:${subjOf(h.sc).accent}"></i><span>${esc(chTitle(h.ch))}</span><button class="tbtn" data-scatshow="${esc(h.k)}">Show</button></div>`).join("")}
+        <button class="tbtn" id="scatShowAll" style="width:100%;margin-top:6px">Show all</button></div></div>` : ""}
     ${rows.length ? `<svg viewBox="0 0 ${W} ${H}" style="width:100%;height:auto;display:block">
       ${grid}
       <line x1="${padL}" x2="${W-padR}" y1="${y(50)}" y2="${y(50)}" stroke="var(--rule)" stroke-dasharray="4 4"/>
@@ -8679,8 +8725,8 @@ function scatterHTML(){
       <text x="${(W-padR+padL)/2}" y="${H-6}" text-anchor="middle" fill="var(--text-3)" font-size="12" font-family="ui-sans-serif">% completed →</text>
       <text x="14" y="${(H-padB+padT)/2}" text-anchor="middle" fill="var(--text-3)" font-size="12" font-family="ui-sans-serif" transform="rotate(-90 14 ${(H-padB+padT)/2})">% correct →</text>
     </svg>
-    <div class="hint">Each dot is a chapter, sized by how much of it you have done. Bottom right is finished but shaky; top left is strong but barely started. Click a dot for the chapter in full.</div>`
-    : `<div class="empty">No chapter has that many questions done yet.</div>`}
+    <div class="hint">Each dot is a chapter, sized by how much of it you have done. Bottom right is finished but shaky; top left is strong but barely started. Click a dot to open the chapter or hide it from the graph.</div>`
+    : `<div class="empty">${all.length ? "Every chapter here is hidden — use the button above to bring them back." : "No chapter has that many questions done yet."}</div>`}</div>
   </div>`;
 }
 
@@ -8813,8 +8859,14 @@ function chapterAnalysisHTML(){
   </div>`;
 }
 function wireStatSections(){
-  app.querySelectorAll("[data-scatnode],[data-chapnode]").forEach(el=>el.onclick = ()=>
-    spiderNodeStats(el.dataset.scatnode || el.dataset.chapnode));
+  app.querySelectorAll("[data-chapnode]").forEach(el=>el.onclick = ()=>spiderNodeStats(el.dataset.chapnode));
+  app.querySelectorAll("[data-scatnode]").forEach(el=>el.onclick = e=>scatPop(el, e));
+  const hb = document.getElementById("scatHidBtn");
+  if(hb) hb.onclick = e=>{ e.stopPropagation(); const m = document.getElementById("scatMenu"); m.hidden = !m.hidden; };
+  app.querySelectorAll("[data-scatshow]").forEach(b=>b.onclick = ()=>{
+    S.look.scatHide = (S.look.scatHide||[]).filter(k=>k!==b.dataset.scatshow); markDirty(); viewStats(); });
+  const sa = document.getElementById("scatShowAll");
+  if(sa) sa.onclick = ()=>{ S.look.scatHide = []; markDirty(); viewStats(); };
   app.querySelectorAll("[data-scatsub]").forEach(b=>b.onclick = ()=>{
     const sc = b.dataset.scatsub;
     let cur = statView.scatter.subs || TREE.order.slice();
@@ -8996,6 +9048,22 @@ function spiderHTML(){
   </div>`;
 }
 /* the closer look behind a point on the web */
+/* a small menu by a scatter dot: open the chapter, or take it off the graph */
+function scatPop(el, e){
+  document.querySelectorAll(".scat-pop").forEach(x=>x.remove());
+  const id = el.dataset.scatnode, [, sc, no] = id.split(":"), ch = chapOf(sc, no); if(!ch) return;
+  const pop = document.createElement("div"); pop.className = "scat-pop";
+  pop.innerHTML = `<b>${esc(chTitle(ch))}</b><button class="tbtn" data-sp="open">Open details</button><button class="tbtn" data-sp="hide">Hide from graph</button>`;
+  document.body.appendChild(pop);
+  const r = pop.getBoundingClientRect();
+  pop.style.left = Math.min(window.innerWidth - r.width - 10, Math.max(10, e.clientX + 10)) + "px";
+  pop.style.top = Math.min(window.innerHeight - r.height - 10, Math.max(10, e.clientY + 10)) + "px";
+  const close = ev=>{ if(ev && ev.type==="pointerdown" && pop.contains(ev.target)) return; pop.remove(); document.removeEventListener("pointerdown", close, true); window.removeEventListener("scroll", close, true); };
+  setTimeout(()=>{ document.addEventListener("pointerdown", close, true); window.addEventListener("scroll", close, true); }, 0);
+  pop.onclick = ev=>{ const b = ev.target.closest("[data-sp]"); if(!b) return; close();
+    if(b.dataset.sp==="open") spiderNodeStats(id);
+    else { S.look.scatHide = (S.look.scatHide||[]).filter(k=>k!==sc+":"+no).concat([sc+":"+no]); markDirty(); viewStats(); toast(ch.name+" hidden from the graph"); } };
+}
 function spiderNodeStats(id){
   const p = id.split(":");
   if(p[0]==="subject"){
@@ -9065,7 +9133,8 @@ function wireSpider(){
 function dayCell(dt,k,rec,peak){
   const tot = rec ? Object.values(rec).reduce((a,b)=>a+b,0) : 0;
   const acts = rec ? Object.keys(rec) : [];
-  const bars = acts.map(a=>`<i style="background:${activityColor(a)};flex:1;height:${Math.max(24, Math.round(rec[a]/peak*100))}%"></i>`).join("");
+  /* one bar per day, its height the day's total against the busiest day shown, split by activity */
+  const bars = `<span class="stk" style="height:${Math.max(4, Math.round(tot/peak*100))}%">${acts.map(a=>`<i style="background:${activityColor(a)};flex:${rec[a]}" title="${esc(activityName(a))} ${rec[a]} min"></i>`).join("")}</span>`;
   return `<button class="day ${tot?"on":""} ${k===todayKey()?"today":""}" data-day="${k}" title="${tot} min">
     <span class="dn">${dt.getDate()}</span>
     ${tot?`<span class="bars">${bars}</span><span class="tot">${tot}m</span>`:""}</button>`;
