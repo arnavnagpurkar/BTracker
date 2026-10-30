@@ -162,7 +162,7 @@ select,.tin{background:var(--ink-3);border:1px solid var(--rule);border-radius:7
 .sheet{border:1px solid var(--rule-soft);border-radius:var(--r);background:var(--ink-2);user-select:none}
 .sheet > :first-child{border-radius:var(--r) var(--r) 0 0}
 .sheet > :last-child{border-radius:0 0 var(--r) var(--r)}
-.row{display:grid;grid-template-columns:62px 58px 122px minmax(100px,1fr) 132px 88px 76px;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--rule-soft);position:relative}
+.row{display:grid;grid-template-columns:62px 58px 122px minmax(100px,1fr) 132px 88px 132px;align-items:center;gap:10px;padding:8px 12px;border-top:1px solid var(--rule-soft);position:relative}
 .row:first-child{border-top:none}
 .head{border-top:none;background:var(--ink-3);font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-3);position:sticky;top:var(--topbar-h,86px);z-index:5;padding-top:9px;padding-bottom:9px}
 .row.done{background:rgba(62,207,142,.035)}
@@ -383,14 +383,16 @@ table.mk th.dropcol{box-shadow:inset 2px 0 0 var(--accent)}
 
 /* resolved */
 .c-bm{display:flex;align-items:center;gap:2px}.c-bm .bm{margin-left:0}
-.rsv{font-size:11.5px;font-weight:700;line-height:1;min-width:26px;padding:3px 5px;border-radius:6px;margin-left:4px;color:#3a4757;border:1px solid transparent}
+.rsv{font-size:11.5px;font-weight:700;letter-spacing:.02em;line-height:1;white-space:nowrap;min-width:92px;padding:7px 10px;border-radius:8px;margin-left:6px;color:var(--text-2);background:var(--ink-3);border:1px solid var(--rule)}
 .rsv:not([disabled]):hover{color:#b5d96a;border-color:rgba(181,217,106,.4)}
 .rsv[disabled]{opacity:.35;cursor:default}
 .rsv.lv1{color:#c9d96a;border-color:rgba(201,217,106,.45);background:rgba(201,217,106,.08)}
 .rsv.lv2{color:#a8d86a;border-color:rgba(168,216,106,.6);background:rgba(168,216,106,.16)}
+.rsv.lv3{color:#0e1218;border-color:#9fd35a;background:#9fd35a}
 .row.rs1{background:linear-gradient(90deg,rgba(201,217,106,.06),transparent 70%)}
 .row.rs2{background:rgba(186,216,96,.12)}
-.row.rs2 .bub .w.on{background:rgba(186,216,96,.25);border-color:#b5d96a;color:#d8f0a0}
+.row.rs3{background:rgba(159,211,90,.2)}
+.row.rs2 .bub .w.on,.row.rs3 .bub .w.on{background:rgba(186,216,96,.25);border-color:#b5d96a;color:#d8f0a0}
 /* bookmark */
 .bm{font-size:14px;line-height:1;color:#3a4757;padding:2px 4px;border-radius:5px;margin-left:6px}
 .bm:hover{color:var(--hw)}
@@ -6061,7 +6063,7 @@ function arrFor(sc,no,code,len){
 const blank = () => ({n:0,done:0,correct:0,wrong:0,cant:0,flag:0});
 /* a mistake you later got right counts for less: half after one "resolved", a quarter after two */
 const rsLevel = qk => { const r = S.r[qk]; return r && r.rs ? r.rs : 0; };
-const rsW = rec => rec && rec.rs===2 ? 0.25 : rec && rec.rs===1 ? 0.5 : 1;
+const rsW = rec => !rec || !rec.rs ? 1 : rec.rs===1 ? 0.5 : rec.rs===2 ? 0.25 : 0;
 const fmtN = x => Math.round(x*100)/100;
 function addTo(a,b){ ["n","done","correct","wrong","cant","flag"].forEach(k=>a[k]+=b[k]); a.wrong = fmtN(a.wrong); return a; }
 function exStats(sc,ch,code){
@@ -6834,7 +6836,7 @@ function rowHTML(i){
   const qk = key(ctx.sc,ctx.ch.no,ctx.code)+"."+i;
   const note = S.n[qk]||"", rec = S.r[qk];
   const rl = r===2 ? rsLevel(qk) : 0;
-  const cls = [isDone(v)?"done":"", r===3?"cant":"", sel.has(i)?"sel":"", ctx.hw.has(i)?"hw":"", rl===1?"rs1":"", rl===2?"rs2":""].filter(Boolean).join(" ");
+  const cls = [isDone(v)?"done":"", r===3?"cant":"", sel.has(i)?"sel":"", ctx.hw.has(i)?"hw":"", rl?"rs"+rl:""].filter(Boolean).join(" ");
   const why = r===2 ? `<button class="why" data-act="why" title="${rec&&rec.t.length?esc(rec.t.map(tagName).join(", ")):"Say what went wrong"}">${rec&&rec.t.length?rec.t.length+" TAG"+(rec.t.length>1?"S":""):"WHY?"}</button>` : "";
   return `<div class="row ${cls}" data-i="${i}">
     <span class="qn" title="Drag down to select several questions">${String(i+1).padStart(3,"0")}${ctx.hw.has(i)?'<i>HW</i>':""}</span>
@@ -6850,8 +6852,8 @@ function rowHTML(i){
       <button class="cantb ${r===3?"on":""}" data-act="res" data-v="3" aria-pressed="${r===3}" title="Could not solve">STUCK</button></span>
     <span class="c-stars stars">${[1,2,3].map(k=>`<button class="${st>=k?"on":""}" data-act="star" data-v="${k}" aria-label="${k} star">★</button>`).join("")}</span>
     <span class="c-bm"><button class="bm ${(S.bm[qk]||[]).length?"on":""}" data-act="bm" title="Save to a collection" aria-label="Save question ${i+1} to a collection">${bmIcon((S.bm[qk]||[]).length)}</button><button class="rsv lv${rl}" data-act="rsv" ${r===2?"":"disabled"}
-      title="${r!==2 ? "For a question you got wrong — press it when you redo it correctly" : rl===0 ? "Got it right when you redid it? Halves this mistake" : rl===1 ? "Resolved once (counts half). Press again to clear it to a quarter" : "Resolved — counts a quarter. Press again to undo"}"
-      aria-label="Resolved, question ${i+1}">${rl===2?"✓✓":rl===1?"✓":"↺"}</button></span>
+      title="${r!==2 ? "For a question you got wrong — press it when you redo it correctly" : rl===0 ? "Got it right when you redid it? Halves this mistake" : rl===1 ? "Counts half now. Press again for a quarter" : rl===2 ? "Counts a quarter now. Press again to remove the mistake entirely" : "Mistake removed. Press again to undo"}"
+      aria-label="Resolved, question ${i+1}">${rl===3?"✓ Resolved":rl===2?"Resolved ¼":rl===1?"Resolved ½":"Resolved"}</button></span>
   </div>`;
 }
 function redrawRow(i){ const el = document.querySelector(`.row[data-i="${i}"]`); if(el) el.outerHTML = rowHTML(i); }
@@ -6872,10 +6874,10 @@ document.addEventListener("click", e=>{
   if(act==="rsv"){
     if(result(v)!==2) return;
     snapshot("resolve a mistake");
-    const rec = S.r[qk] = S.r[qk] || {d:todayKey(), t:[]}, nx = ((rec.rs||0) + 1) % 3;
+    const rec = S.r[qk] = S.r[qk] || {d:todayKey(), t:[]}, nx = ((rec.rs||0) + 1) % 4;
     if(nx) rec.rs = nx; else delete rec.rs;
     redrawRow(i); markDirty(); refreshStats();
-    toast(nx===1 ? "Resolved — this mistake now counts half" : nx===2 ? "Resolved twice — counts a quarter" : "No longer marked resolved");
+    toast(nx===1 ? "Resolved — this mistake now counts half" : nx===2 ? "Resolved twice — counts a quarter" : nx===3 ? "Resolved — the mistake no longer counts" : "No longer marked resolved");
     return;
   }
   if(act==="bm"){ openBookmark(qk, ()=>drawSheet()); return; }
